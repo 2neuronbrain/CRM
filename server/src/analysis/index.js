@@ -3,10 +3,12 @@ import { analyzeStakeholders } from './stakeholderAnalysis.js';
 import { rankActions } from './actionRanking.js';
 import { analyzeRisks } from './riskAnalysis.js';
 import { analyzeGaps } from './gapAnalysis.js';
+import { analyzeSentiment } from './sentimentAnalysis.js';
+import { getAccountSummary } from './summaryAnalysis.js';
 import db from '../database/db.js';
 
 /**
- * Compiles complete 5-question intelligence for a specific account
+ * Compiles complete 5-question intelligence + sentiment + executive summary for an account
  */
 export async function getAccountIntelligence(accountId) {
   const accountRes = await db.query(`SELECT * FROM accounts WHERE id = $1`, [accountId]);
@@ -15,16 +17,20 @@ export async function getAccountIntelligence(accountId) {
   }
   const account = accountRes.rows[0];
 
-  const [bookValue, powerMap, actions, riskRadar, blindSpots] = await Promise.all([
+  const [bookValue, powerMap, actions, riskRadar, blindSpots, sentiment, summary] = await Promise.all([
     analyzeDeals(accountId),
     analyzeStakeholders(accountId),
     rankActions(accountId),
     analyzeRisks(accountId),
-    analyzeGaps(accountId)
+    analyzeGaps(accountId),
+    analyzeSentiment(accountId),
+    getAccountSummary(accountId)
   ]);
 
   return {
     account,
+    sentiment,
+    summary,
     fiveQuestions: {
       question1_bookValue: {
         question: 'What is the book worth?',
@@ -88,7 +94,6 @@ export async function getGlobalDashboard() {
     totalOpenRisks += intel.fiveQuestions.question4_riskRadar.risks.length;
     totalGaps += intel.fiveQuestions.question5_blindSpots.totalGaps;
 
-    // Count upcoming deadlines in actions
     const now = Date.now();
     for (const act of intel.fiveQuestions.question3_nextActions.allActions) {
       if (act.deadline) {
@@ -107,11 +112,22 @@ export async function getGlobalDashboard() {
       reportedValue: intel.fiveQuestions.question1_bookValue.totalReportedValue,
       dealsCount: intel.fiveQuestions.question1_bookValue.dealsCount,
       riskStatus: intel.fiveQuestions.question4_riskRadar.overallStatus,
+      sentiment: intel.sentiment,
+      executiveSummary: intel.summary,
       topAction: intel.fiveQuestions.question3_nextActions.top3Actions[0] || null,
       topRisk: intel.fiveQuestions.question4_riskRadar.risks[0] || null,
       gapsCount: intel.fiveQuestions.question5_blindSpots.totalGaps
     });
   }
+
+  // Fetch all priority tasks across accounts
+  const actionsRes = await db.query(
+    `SELECT a.*, d.title as deal_title, acc.name as account_name
+     FROM actions a
+     LEFT JOIN deals d ON d.id = a.deal_id
+     LEFT JOIN accounts acc ON acc.id = a.account_id
+     ORDER BY a.priority ASC, a.created_at ASC`
+  );
 
   // Fetch recent activities
   const recentActivitiesRes = await db.query(
@@ -128,6 +144,7 @@ export async function getGlobalDashboard() {
       totalGaps
     },
     accounts: accountSummaries,
+    priorityTasks: actionsRes.rows,
     recentActivity: recentActivitiesRes.rows
   };
 }

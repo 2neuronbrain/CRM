@@ -9,6 +9,8 @@ import EvidenceDrawer from './components/EvidenceDrawer';
 import DashboardPage from './pages/DashboardPage';
 import AccountsPage from './pages/AccountsPage';
 import AccountDetailPage from './pages/AccountDetailPage';
+import PriorityTasksPage from './pages/PriorityTasksPage';
+import CustomerSentimentPage from './pages/CustomerSentimentPage';
 import DealsPage from './pages/DealsPage';
 import PowerMapPage from './pages/PowerMapPage';
 import NextActionsPage from './pages/NextActionsPage';
@@ -24,15 +26,17 @@ export function App() {
     <Router>
       <SyncProvider>
         <EvidenceProvider>
-          <div className="min-h-screen bg-slate-50 flex flex-col text-slate-800">
+          <div className="min-h-screen bg-slate-50 flex flex-col text-slate-800 font-sans antialiased">
             <Navbar />
             <SyncStatusBar />
 
-            <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+            <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-6">
               <Routes>
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/accounts" element={<AccountsPage />} />
                 <Route path="/accounts/:accountId" element={<AccountDetailPage />} />
+                <Route path="/tasks" element={<PriorityTasksPage />} />
+                <Route path="/sentiment" element={<CustomerSentimentPage />} />
                 <Route path="/deals" element={<DealsPage />} />
                 <Route path="/power-map" element={<PowerMapPage />} />
                 <Route path="/actions" element={<NextActionsPage />} />
@@ -47,10 +51,12 @@ export function App() {
 
             <EvidenceDrawer />
 
-            <footer className="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500">
+            <footer className="border-t border-slate-200 bg-white py-3.5 text-center text-xs text-slate-500 mt-12">
               <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-                <span>FlytBase CRM • Live MCP-Connected Account Intelligence</span>
-                <span className="font-mono text-[11px] text-slate-400">Strict Provenance Architecture • 1 Call/65s Rate Limit</span>
+                <span>Account Intelligence CRM • MVP</span>
+                <span className="font-mono text-[11px] text-slate-400">
+                  Strict Provenance Engine • Rate Limit Protected (1 Call / 65s)
+                </span>
               </div>
             </footer>
           </div>

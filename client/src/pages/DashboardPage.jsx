@@ -1,22 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useEvidence } from '../context/EvidenceContext';
-import ConfidenceBadge from '../components/ConfidenceBadge';
+import SentimentBadge from '../components/SentimentBadge';
 import SeverityBadge from '../components/SeverityBadge';
+import TaskItem from '../components/TaskItem';
 import { 
-  DollarSign, 
   Building2, 
-  Briefcase, 
-  AlertTriangle, 
-  Target, 
-  EyeOff, 
-  Clock, 
-  ArrowUpRight, 
   ShieldCheck, 
-  FileText,
-  Activity,
+  CheckSquare, 
+  HeartHandshake, 
+  AlertTriangle, 
+  ArrowRight, 
+  Clock, 
+  Radio, 
   Layers,
-  ChevronRight
+  ChevronRight,
+  TrendingDown
 } from 'lucide-react';
 
 export function DashboardPage() {
@@ -40,330 +39,300 @@ export function DashboardPage() {
 
   useEffect(() => {
     fetchDashboard();
-    const interval = setInterval(fetchDashboard, 8000);
+    const interval = setInterval(fetchDashboard, 6000);
     return () => clearInterval(interval);
   }, []);
+
+  const handleTaskStatusChange = async (taskId, newStatus) => {
+    try {
+      setData(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          priorityTasks: prev.priorityTasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t)
+        };
+      });
+      await fetch(`/api/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+    } catch (err) {
+      console.error('Failed to update task:', err);
+      fetchDashboard();
+    }
+  };
 
   if (loading && !data) {
     return (
       <div className="py-24 text-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-        <p className="text-sm text-slate-500 font-medium">Loading executive account intelligence...</p>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900 mx-auto mb-3"></div>
+        <p className="text-xs text-slate-500 font-medium">Loading executive account briefing...</p>
       </div>
     );
   }
 
-  const { overview = {}, accounts = [], recentActivity = [] } = data || {};
+  const { overview = {}, accounts = [], priorityTasks = [], recentActivity = [] } = data || {};
+  const openTasks = priorityTasks.filter(t => t.status !== 'completed').slice(0, 4);
 
   return (
-    <div className="space-y-8 pb-12">
-      {/* Executive Welcome & Value Header */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono text-[11px] font-semibold uppercase tracking-wider border border-emerald-500/30">
+    <div className="space-y-7 pb-12">
+      {/* Executive Overview Header */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-semibold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                 Monday Review Briefing
               </span>
-              <span className="text-slate-400 text-xs">Live MCP Synchronization Active</span>
+              <span className="text-xs text-slate-400">• Live MCP Synchronized</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Executive Account Intelligence</h1>
-            <p className="text-slate-300 text-sm mt-1 max-w-2xl leading-relaxed">
-              Real-time, evidence-backed CRM intelligence for assigned customer accounts. Every dollar and factual claim is backed by unedited MCP source records.
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+              Executive Account Intelligence
+            </h1>
+            <p className="text-xs text-slate-500 max-w-2xl leading-relaxed">
+              Live, unmanipulated account intelligence for assigned customer accounts. Every dollar, risk trigger, and action links directly to primary MCP records.
             </p>
           </div>
 
-          <div className="flex items-center gap-3 bg-slate-800/80 p-4 rounded-xl border border-slate-700/60 backdrop-blur-sm">
-            <div>
-              <p className="text-xs text-slate-400 uppercase font-semibold">Total Verified Book</p>
-              <p className="text-2xl sm:text-3xl font-extrabold text-emerald-400">
+          {/* Quick Metrics Ribbon */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-right min-w-[140px]">
+              <span className="text-[10px] text-slate-500 uppercase font-semibold block">Verified Revenue</span>
+              <span className="text-xl font-bold text-emerald-700 font-mono">
                 ${(overview.totalVerifiedBookValue || 0).toLocaleString()}
-              </p>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                + ${(overview.totalReportedValue || 0).toLocaleString()} unverified reported
-              </p>
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">Primary contracts</span>
+            </div>
+
+            <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-right min-w-[130px]">
+              <span className="text-[10px] text-slate-500 uppercase font-semibold block">Pipeline Value</span>
+              <span className="text-xl font-bold text-slate-800 font-mono">
+                ${(overview.totalReportedValue || 0).toLocaleString()}
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">Reported proposals</span>
+            </div>
+
+            <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-right min-w-[120px]">
+              <span className="text-[10px] text-slate-500 uppercase font-semibold block">Active Threats</span>
+              <span className="text-xl font-bold text-rose-600 font-mono">
+                {overview.totalOpenRisks || 0} Critical
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">Immediate action</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {/* Verified Value */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 mb-1">
-            <span className="text-xs font-semibold uppercase">Verified Book</span>
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
-          </div>
-          <p className="text-xl font-bold text-slate-900">
-            ${(overview.totalVerifiedBookValue || 0).toLocaleString()}
-          </p>
-          <span className="text-[11px] text-emerald-700 font-medium bg-emerald-50 px-1.5 py-0.5 rounded">
-            Primary contract backed
-          </span>
-        </div>
-
-        {/* Reported Value */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 mb-1">
-            <span className="text-xs font-semibold uppercase">Reported Value</span>
-            <DollarSign className="w-4 h-4 text-amber-500" />
-          </div>
-          <p className="text-xl font-bold text-slate-900">
-            ${(overview.totalReportedValue || 0).toLocaleString()}
-          </p>
-          <span className="text-[11px] text-amber-700 font-medium bg-amber-50 px-1.5 py-0.5 rounded">
-            Commercial proposals
-          </span>
-        </div>
-
-        {/* Deals */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 mb-1">
-            <span className="text-xs font-semibold uppercase">Active Deals</span>
-            <Briefcase className="w-4 h-4 text-blue-500" />
-          </div>
-          <p className="text-xl font-bold text-slate-900">{overview.totalDeals || 0}</p>
-          <span className="text-[11px] text-slate-500">Across 2 accounts</span>
-        </div>
-
-        {/* Open Risks */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 mb-1">
-            <span className="text-xs font-semibold uppercase">Open Risks</span>
-            <AlertTriangle className="w-4 h-4 text-rose-500" />
-          </div>
-          <p className="text-xl font-bold text-rose-600">{overview.totalOpenRisks || 0}</p>
-          <span className="text-[11px] text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded">
-            Requiring action
-          </span>
-        </div>
-
-        {/* Upcoming Deadlines */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 mb-1">
-            <span className="text-xs font-semibold uppercase">Urgent Moves</span>
-            <Clock className="w-4 h-4 text-purple-500" />
-          </div>
-          <p className="text-xl font-bold text-slate-900">{overview.totalUpcomingDeadlines || 0}</p>
-          <span className="text-[11px] text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded">
-            Approaching deadlines
-          </span>
-        </div>
-
-        {/* Intelligence Gaps */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 mb-1">
-            <span className="text-xs font-semibold uppercase">Blind Spots</span>
-            <EyeOff className="w-4 h-4 text-slate-500" />
-          </div>
-          <p className="text-xl font-bold text-slate-900">{overview.totalGaps || 0}</p>
-          <span className="text-[11px] text-slate-500">Critical unknowns</span>
-        </div>
-      </div>
-
-      {/* Account Workspaces Section */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
+      {/* Account Summaries Based on Current Status */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">Account Workspaces</h2>
-            <p className="text-xs text-slate-500">Complete five-question intelligence profile for each assigned account</p>
+            <h2 className="text-base font-bold text-slate-900">Account Summaries (Current Status)</h2>
+            <p className="text-xs text-slate-500">Commercial & operational executive status synthesis</p>
           </div>
-          <Link to="/accounts" className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
-            Compare Accounts <ChevronRight className="w-4 h-4" />
+          <Link to="/accounts" className="text-xs font-semibold text-slate-700 hover:text-slate-900 flex items-center gap-1">
+            Portfolio Matrix <ChevronRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {accounts.map((acc) => (
-            <div 
-              key={acc.id} 
-              className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between overflow-hidden"
-            >
-              <div className="p-6">
-                {/* Header */}
-                <div className="flex items-start justify-between gap-4 mb-3">
-                  <div>
-                    <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
-                      Account {acc.id}
-                    </span>
-                    <h3 className="text-xl font-bold text-slate-900 mt-2 leading-tight">
-                      {acc.name}
-                    </h3>
-                  </div>
-                  <SeverityBadge severity={acc.riskStatus || 'Amber'} />
-                </div>
-
-                <p className="text-xs text-slate-600 line-clamp-2 mb-4 leading-relaxed">
-                  {acc.description}
-                </p>
-
-                {/* Numbers Row */}
-                <div className="grid grid-cols-3 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 mb-4 text-xs">
-                  <div>
-                    <span className="text-slate-500 block text-[10px] uppercase font-semibold">Verified Book</span>
-                    <strong className="text-emerald-700 font-bold text-sm">
-                      ${(acc.verifiedBookValue || 0).toLocaleString()}
-                    </strong>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px] uppercase font-semibold">Reported</span>
-                    <strong className="text-slate-700 font-bold text-sm">
-                      ${(acc.reportedValue || 0).toLocaleString()}
-                    </strong>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px] uppercase font-semibold">Deals</span>
-                    <strong className="text-slate-700 font-bold text-sm">{acc.dealsCount}</strong>
-                  </div>
-                </div>
-
-                {/* Top Action & Top Risk previews */}
-                <div className="space-y-2 text-xs">
-                  {acc.topAction && (
-                    <div className="p-2.5 bg-emerald-50/60 rounded-lg border border-emerald-200/60 flex items-start gap-2">
-                      <Target className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                      <div className="min-w-0 flex-1">
-                        <span className="font-semibold text-emerald-950 block truncate">
-                          #1 Move: {acc.topAction.title}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {accounts.map((acc) => {
+            const summary = acc.executiveSummary || {};
+            return (
+              <div 
+                key={acc.id} 
+                className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between space-y-4 hover:border-slate-300 transition"
+              >
+                <div className="space-y-3.5">
+                  {/* Top Bar */}
+                  <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-900 text-white">
+                          Account {acc.id}
                         </span>
-                        <span className="text-[11px] text-emerald-800">
-                          Owner: {acc.topAction.owner} • Due: {acc.topAction.deadline || 'Immediate'}
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                          {summary.statusCategory || 'Active'}
                         </span>
                       </div>
+                      <h3 className="text-base font-bold text-slate-900 leading-tight">
+                        {acc.name}
+                      </h3>
                     </div>
-                  )}
 
-                  {acc.topRisk && (
-                    <div className="p-2.5 bg-rose-50/60 rounded-lg border border-rose-200/60 flex items-start gap-2">
-                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                      <div className="min-w-0 flex-1">
-                        <span className="font-semibold text-rose-950 block truncate">
-                          Top Risk: {acc.topRisk.title}
-                        </span>
-                        <span className="text-[11px] text-rose-800">
-                          {acc.topRisk.consequence ? acc.topRisk.consequence.slice(0, 90) + '...' : 'Under monitoring'}
-                        </span>
-                      </div>
+                    <SentimentBadge 
+                      status={acc.sentiment?.overallSentiment} 
+                      score={acc.sentiment?.sentimentScore} 
+                      size="xs" 
+                    />
+                  </div>
+
+                  {/* One-Line Verdict */}
+                  <p className="text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-100 leading-relaxed font-medium">
+                    {summary.oneLineVerdict || acc.description}
+                  </p>
+
+                  {/* Core Metrics */}
+                  <div className="grid grid-cols-3 gap-2 p-2.5 bg-slate-50/70 rounded-xl border border-slate-100 text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-semibold block">Book Value</span>
+                      <strong className="text-emerald-700 font-bold text-sm block">
+                        {summary.metrics?.verifiedRevenue || `$${(acc.verifiedBookValue || 0).toLocaleString()}`}
+                      </strong>
                     </div>
-                  )}
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-semibold block">Active Fleet</span>
+                      <span className="text-slate-800 font-medium text-[11px] block mt-0.5">
+                        {summary.metrics?.activeFleet?.split(' ')[0] || '14'} Docks
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-semibold block">Term Expiry</span>
+                      <span className="text-rose-700 font-mono text-[11px] block mt-0.5 font-semibold">
+                        {summary.metrics?.renewalDate?.split(' ')[0]} {summary.metrics?.renewalDate?.split(' ')[1]}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Required Monday Decision */}
+                  <div className="text-xs space-y-1">
+                    <strong className="block text-[11px] uppercase font-bold text-slate-900 tracking-wider">
+                      Required Monday Decision:
+                    </strong>
+                    <p className="text-slate-700 text-xs leading-relaxed">
+                      {summary.criticalDecision}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Footer Action Link */}
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-400">
+                    {acc.gapsCount} critical blind spots
+                  </span>
+                  <Link
+                    to={`/accounts/${acc.id}`}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition"
+                  >
+                    Open Deep Dive <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
                 </div>
               </div>
-
-              {/* Action Button */}
-              <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-xs text-slate-500">
-                  {acc.gapsCount} critical blind spots identified
-                </span>
-                <Link
-                  to={`/accounts/${acc.id}`}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg transition"
-                >
-                  Open Intelligence File <ArrowUpRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
-      {/* Bottom split: The 5 Core Questions Quick Review & Activity Timeline */}
+      {/* Split Grid: Priority Tasks & Customer Sentiment */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Core 5 Questions Framework Summary */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-slate-900 text-base">The Five Core Questions Framework</h3>
-            <span className="text-xs font-medium text-slate-500">Traceable Account Intelligence</span>
-          </div>
-
-          <div className="space-y-4">
-            <div className="p-4 rounded-xl border border-slate-100 bg-slate-50 hover:bg-slate-100/60 transition">
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-bold text-slate-900 text-sm">1. What is the book worth?</span>
-                <Link to="/deals" className="text-xs font-semibold text-emerald-600">View Deals &rarr;</Link>
+        {/* Left: Immediate Priority Tasks */}
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <CheckSquare className="w-4 h-4 text-emerald-600" />
+                <h3 className="font-bold text-slate-900 text-sm">Immediate Priority Tasks</h3>
               </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Separates verified contract values from reported claims. Total verified book stands at <strong>${(overview.totalVerifiedBookValue || 0).toLocaleString()}</strong>. Unsupported assumptions are excluded from verified revenue calculations.
-              </p>
+              <p className="text-xs text-slate-500 mt-0.5">Ranked operational deliverables with assigned owners</p>
             </div>
-
-            <div className="p-4 rounded-xl border border-slate-100 bg-slate-50 hover:bg-slate-100/60 transition">
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-bold text-slate-900 text-sm">2. Who holds the power?</span>
-                <Link to="/power-map" className="text-xs font-semibold text-emerald-600">View Power Map &rarr;</Link>
-              </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Maps decision-makers, champions, economic buyers, and blockers. Highlights vulnerable relationships, departure alerts (e.g. Rhys Calder leaving Eastern Counties in January), and unengaged stakeholders.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl border border-slate-100 bg-slate-50 hover:bg-slate-100/60 transition">
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-bold text-slate-900 text-sm">3. What should we do first?</span>
-                <Link to="/actions" className="text-xs font-semibold text-emerald-600">View Ranked Actions &rarr;</Link>
-              </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Deterministic prioritization algorithm combining deal value, documented likelihood, and deadline urgency. Every action includes an assigned owner and clear justification.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl border border-slate-100 bg-slate-50 hover:bg-slate-100/60 transition">
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-bold text-slate-900 text-sm">4. What is about to go wrong?</span>
-                <Link to="/risks" className="text-xs font-semibold text-emerald-600">View Risk Radar &rarr;</Link>
-              </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Detects unanswered customer communications (Insp. Karen Mbeki escalation), approaching public events, and silent usage drop-offs (3 docks stopping flights at Aldermoor).
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl border border-slate-100 bg-slate-50 hover:bg-slate-100/60 transition">
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-bold text-slate-900 text-sm">5. What do we still not know?</span>
-                <Link to="/blind-spots" className="text-xs font-semibold text-emerald-600">View Blind Spots &rarr;</Link>
-              </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Identifies critical information gaps that could derail account renewals or tender specs. Formulates recommended discovery questions to ask key stakeholders.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Live Activity & Signals Feed */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-emerald-600" />
-              <h3 className="font-bold text-slate-900 text-base">Live Account Feed</h3>
-            </div>
-            <Link to="/activity" className="text-xs font-semibold text-emerald-600 hover:text-emerald-700">
-              All Activity &rarr;
+            <Link to="/tasks" className="text-xs font-semibold text-slate-700 hover:text-slate-900 flex items-center gap-1">
+              All Tasks ({priorityTasks.length}) &rarr;
             </Link>
           </div>
 
-          <div className="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[480px]">
-            {recentActivity.length === 0 ? (
-              <div className="py-12 text-center text-slate-400 text-xs">
-                No recent activity logged yet.
+          <div className="space-y-3">
+            {openTasks.length === 0 ? (
+              <div className="py-8 text-center text-slate-400 text-xs">
+                No open priority tasks.
               </div>
             ) : (
-              recentActivity.map((act) => (
-                <div key={act.id} className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-slate-800">{act.title}</span>
-                    <span className="text-[10px] text-slate-400">
-                      {new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                  <p className="text-slate-600 leading-relaxed">{act.description}</p>
-                  {act.account_id && (
-                    <span className="inline-block mt-1 text-[10px] font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-600">
-                      Account {act.account_id}
-                    </span>
-                  )}
-                </div>
+              openTasks.map((task) => (
+                <TaskItem
+                  key={task.id}
+                  task={task}
+                  onStatusChange={handleTaskStatusChange}
+                />
               ))
             )}
+          </div>
+        </div>
+
+        {/* Right: Customer Sentiment Snapshot */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4 flex flex-col justify-between">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <HeartHandshake className="w-4 h-4 text-rose-600" />
+                <h3 className="font-bold text-slate-900 text-sm">Customer Sentiments</h3>
+              </div>
+              <Link to="/sentiment" className="text-xs font-semibold text-slate-700 hover:text-slate-900">
+                Details &rarr;
+              </Link>
+            </div>
+
+            {/* Quick Stakeholder quotes */}
+            <div className="space-y-3">
+              <div className="p-3 bg-rose-50/60 rounded-xl border border-rose-200/80 text-xs space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <strong className="text-rose-950 font-semibold">Insp. Karen Mbeki (Westmere)</strong>
+                  <span className="text-[10px] text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded font-medium">Guarded</span>
+                </div>
+                <p className="text-[11px] text-rose-900 italic leading-relaxed">
+                  "I need two things settled in writing this week: operator training dates and who answers if a dock fails on the event day. Nobody has replied."
+                </p>
+                <div className="pt-1 text-right">
+                  <button
+                    onClick={() => openEvidence('ev_sig_urgent_request')}
+                    className="text-[10px] font-mono text-emerald-700 hover:underline"
+                  >
+                    Ticket FB-11206 Evidence
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-3 bg-amber-50/60 rounded-xl border border-amber-200/80 text-xs space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <strong className="text-amber-950 font-semibold">Aldermoor Site Telemetry</strong>
+                  <span className="text-[10px] text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded font-medium">Silent Freeze</span>
+                </div>
+                <p className="text-[11px] text-amber-900 leading-relaxed">
+                  3 active docks recorded zero flights across 14 days without customer reporting or ticket submissions.
+                </p>
+                <div className="pt-1 text-right">
+                  <button
+                    onClick={() => openEvidence('ev_sig_aldermoor_usage_freeze')}
+                    className="text-[10px] font-mono text-emerald-700 hover:underline"
+                  >
+                    Usage Telemetry Evidence
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-xs space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <strong className="text-slate-900 font-semibold">Rhys Calder (Alliance Lead)</strong>
+                  <span className="text-[10px] text-slate-700 bg-slate-200 px-1.5 py-0.5 rounded font-medium">Departing</span>
+                </div>
+                <p className="text-[11px] text-slate-600 italic leading-relaxed">
+                  "I am moving to another role in the new year and will hand over the drone programme in January. My successor has not been named yet."
+                </p>
+                <div className="pt-1 text-right">
+                  <button
+                    onClick={() => openEvidence('ev_sig_champion_leaves')}
+                    className="text-[10px] font-mono text-emerald-700 hover:underline"
+                  >
+                    Departure Email Evidence
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-slate-100 text-center">
+            <Link to="/sentiment" className="text-xs font-semibold text-slate-900 hover:text-emerald-700">
+              Open Full Relationship Health Audit &rarr;
+            </Link>
           </div>
         </div>
       </div>

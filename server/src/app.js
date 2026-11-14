@@ -50,23 +50,18 @@ async function startServer() {
     await syncWorker.init();
 
     // Graceful shutdown
-    process.on('SIGTERM', () => {
-      console.log('[App] SIGTERM received. Shutting down gracefully...');
+    const shutdown = () => {
+      console.log('[App] Shutting down...');
       syncWorker.stop();
+      if (server.closeAllConnections) server.closeAllConnections();
       server.close(() => {
-        db.pool.end();
-        process.exit(0);
+        db.pool.end().catch(() => {});
       });
-    });
+      setTimeout(() => process.exit(0), 500);
+    };
 
-    process.on('SIGINT', () => {
-      console.log('[App] SIGINT received. Shutting down gracefully...');
-      syncWorker.stop();
-      server.close(() => {
-        db.pool.end();
-        process.exit(0);
-      });
-    });
+    process.on('SIGTERM', shutdown);
+    process.on('SIGINT', shutdown);
 
   } catch (err) {
     console.error('[App] Failed to start server:', err);

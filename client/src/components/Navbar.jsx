@@ -1,55 +1,50 @@
 import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { 
-  BarChart3, 
-  Users, 
-  Target, 
-  AlertOctagon, 
-  EyeOff, 
+  LayoutDashboard, 
+  Building2, 
+  CheckSquare, 
+  HeartHandshake, 
+  Briefcase, 
+  AlertTriangle, 
   FileSearch, 
   FileEdit, 
-  Activity, 
-  Briefcase, 
-  Send,
-  Building2,
-  Sparkles
+  Send
 } from 'lucide-react';
 
 export function Navbar() {
   const navItems = [
-    { to: '/', label: 'Overview', icon: BarChart3 },
+    { to: '/', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/accounts', label: 'Accounts', icon: Building2 },
-    { to: '/deals', label: 'Deals', icon: Briefcase },
-    { to: '/power-map', label: 'Power Map', icon: Users },
-    { to: '/actions', label: 'Next Actions', icon: Target },
-    { to: '/risks', label: 'Risk Radar', icon: AlertOctagon },
-    { to: '/blind-spots', label: 'Blind Spots', icon: EyeOff },
-    { to: '/activity', label: 'Activity', icon: Activity },
+    { to: '/tasks', label: 'Priority Tasks', icon: CheckSquare },
+    { to: '/sentiment', label: 'Sentiment', icon: HeartHandshake },
+    { to: '/deals', label: 'Deals & Book', icon: Briefcase },
+    { to: '/risks', label: 'Risk Radar', icon: AlertTriangle },
     { to: '/evidence', label: 'Evidence', icon: FileSearch },
-    { to: '/notes', label: 'Notes', icon: FileEdit },
+    { to: '/notes', label: 'Write-Back', icon: FileEdit },
     { to: '/hand-in', label: 'Hand In', icon: Send, highlight: true },
   ];
 
   return (
     <header className="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="flex items-center justify-between h-14">
           {/* Logo & Product Name */}
-          <Link to="/" className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-slate-950 font-bold shadow-lg shadow-emerald-500/20">
-              <Sparkles className="w-4 h-4 fill-current" />
+          <Link to="/" className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-md bg-emerald-500 flex items-center justify-center text-slate-950 font-bold text-xs shadow-sm">
+              AG
             </div>
-            <div>
-              <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
-                FlytBase CRM
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-sm tracking-tight text-white">
+                Account Intelligence CRM
               </span>
-              <span className="hidden md:inline-block ml-2 text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                Live Intelligence
+              <span className="hidden sm:inline-block text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                MVP
               </span>
             </div>
           </Link>
 
-          {/* Navigation Items */}
+          {/* Navigation Links */}
           <nav className="hidden lg:flex items-center gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -58,12 +53,12 @@ export function Navbar() {
                   key={item.to}
                   to={item.to}
                   className={({ isActive }) =>
-                    `flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition ${
+                    `flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition ${
                       isActive
-                        ? 'bg-slate-800 text-emerald-400 font-semibold shadow-inner'
+                        ? 'bg-slate-800 text-white font-semibold'
                         : item.highlight
                         ? 'bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600/30'
-                        : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                     }`
                   }
                 >
@@ -76,8 +71,8 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Nav bar */}
-      <div className="lg:hidden flex overflow-x-auto px-4 py-2 border-t border-slate-800 gap-1 text-xs">
+      {/* Mobile nav bar */}
+      <div className="lg:hidden flex overflow-x-auto px-4 py-1.5 border-t border-slate-800 gap-1 text-xs">
         {navItems.map((item) => {
           const Icon = item.icon;
           return (
@@ -85,8 +80,8 @@ export function Navbar() {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex items-center gap-1 px-2.5 py-1.5 rounded-md whitespace-nowrap text-xs ${
-                  isActive ? 'bg-slate-800 text-emerald-400 font-semibold' : 'text-slate-300 hover:text-white'
+                `flex items-center gap-1 px-2.5 py-1 rounded whitespace-nowrap text-xs ${
+                  isActive ? 'bg-slate-800 text-white font-semibold' : 'text-slate-400 hover:text-slate-200'
                 }`
               }
             >

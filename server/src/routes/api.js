@@ -9,6 +9,8 @@ import { analyzeStakeholders } from '../analysis/stakeholderAnalysis.js';
 import { rankActions } from '../analysis/actionRanking.js';
 import { analyzeRisks } from '../analysis/riskAnalysis.js';
 import { analyzeGaps } from '../analysis/gapAnalysis.js';
+import { analyzeSentiment } from '../analysis/sentimentAnalysis.js';
+import { getAccountSummary } from '../analysis/summaryAnalysis.js';
 import sseManager from '../services/sse.js';
 
 const router = express.Router();
@@ -42,7 +44,10 @@ router.get('/dashboard', async (req, res) => {
 router.get('/accounts', async (req, res) => {
   try {
     const accountsRes = await db.query(`SELECT * FROM accounts ORDER BY name ASC`);
-    res.json(accountsRes.rows);
+    const summaries = await Promise.all(
+      accountsRes.rows.map(acc => getAccountSummary(acc.id))
+    );
+    res.json(summaries);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -55,6 +60,24 @@ router.get('/accounts/:accountId', async (req, res) => {
       return res.status(404).json({ error: 'Account not found' });
     }
     res.json(intel);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/accounts/:accountId/summary', async (req, res) => {
+  try {
+    const summary = await getAccountSummary(req.params.accountId);
+    res.json(summary);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/accounts/:accountId/sentiment', async (req, res) => {
+  try {
+    const sentiment = await analyzeSentiment(req.params.accountId);
+    res.json(sentiment);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -100,6 +123,43 @@ router.get('/accounts/:accountId/gaps', async (req, res) => {
   try {
     const data = await analyzeGaps(req.params.accountId);
     res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Tasks / Priority Moves
+router.get('/tasks', async (req, res) => {
+  try {
+    const tasksRes = await db.query(
+      `SELECT a.*, d.title as deal_title, acc.name as account_name
+       FROM actions a
+       LEFT JOIN deals d ON d.id = a.deal_id
+       LEFT JOIN accounts acc ON acc.id = a.account_id
+       ORDER BY a.priority ASC, a.created_at ASC`
+    );
+    res.json(tasksRes.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.patch('/tasks/:taskId', async (req, res) => {
+  const { status } = req.body;
+  try {
+    const updateRes = await db.query(
+      `UPDATE actions 
+       SET status = COALESCE($1, status),
+           updated_at = NOW()
+       WHERE id = $2
+       RETURNING *`,
+      [status, req.params.taskId]
+    );
+    if (updateRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+    sseManager.broadcast('task_updated', updateRes.rows[0]);
+    res.json(updateRes.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -257,14 +317,12 @@ router.post('/notes', async (req, res) => {
   const localId = uuidv4();
 
   try {
-    // 1. Create local note record in 'pending' status
     await db.query(
       `INSERT INTO notes (id, account_id, title, kind, text, synchronization_status, created_at)
        VALUES ($1, $2, $3, $4, $5, 'pending', NOW())`,
       [localId, account || null, title, kind, text]
     );
 
-    // 2. Queue write operation to MCP Central Scheduler with High Priority (priority 2)
     const queueRes = await mcpScheduler.enqueue(
       'write_note',
       {
@@ -273,10 +331,9 @@ router.post('/notes', async (req, res) => {
         kind,
         title
       },
-      2 // High priority
+      2
     );
 
-    // 3. Log activity
     await db.query(
       `INSERT INTO activities (id, account_id, type, title, description, timestamp)
        VALUES ($1, $2, 'note', $3, $4, NOW())`,
