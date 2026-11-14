@@ -12,8 +12,8 @@ const isLocal = config.databaseUrl.includes('localhost') || config.databaseUrl.i
 const pool = new pg.Pool({
   connectionString: config.databaseUrl,
   ssl: isLocal ? false : { rejectUnauthorized: false },
-  max: process.env.VERCEL ? 5 : 20,
-  idleTimeoutMillis: 30000,
+  max: process.env.VERCEL ? 2 : 20,
+  idleTimeoutMillis: process.env.VERCEL ? 5000 : 30000,
   connectionTimeoutMillis: 10000,
 });
 
