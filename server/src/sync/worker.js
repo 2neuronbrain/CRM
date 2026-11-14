@@ -6,6 +6,7 @@ import { processSignals } from './signalProcessor.js';
 class BackgroundSyncWorker {
   constructor() {
     this.pollInterval = null;
+    this.pollCycleCount = 0;
   }
 
   async init() {
@@ -112,6 +113,8 @@ class BackgroundSyncWorker {
   }
 
   async pollLiveSignals() {
+    this.pollCycleCount++;
+
     // Only queue get_signals if no other get_signals is queued or processing
     const pendingSignals = await db.query(
       `SELECT id FROM mcp_queue 
@@ -122,7 +125,21 @@ class BackgroundSyncWorker {
 
     if (pendingSignals.rows.length === 0) {
       console.log('[Worker] Enqueuing periodic live signal check...');
-      await mcpScheduler.enqueue('get_signals', {}, 20); // Priority 20 (lower than user writes or manual checks)
+      await mcpScheduler.enqueue('get_signals', {}, 20); // Priority 20
+    }
+
+    // Every 5 cycles (approx. 5 minutes), dynamically check for new accounts or updated paperwork on MCP
+    if (this.pollCycleCount % 5 === 0) {
+      const pendingAccounts = await db.query(
+        `SELECT id FROM mcp_queue 
+         WHERE tool_name = 'get_my_accounts' 
+           AND status IN ('queued', 'processing')
+         LIMIT 1`
+      );
+      if (pendingAccounts.rows.length === 0) {
+        console.log('[Worker] Periodic cycle: Enqueuing get_my_accounts check for dynamic discovery...');
+        await mcpScheduler.enqueue('get_my_accounts', {}, 25);
+      }
     }
   }
 

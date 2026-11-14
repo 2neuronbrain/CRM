@@ -11,7 +11,6 @@ import {
   Edit3, 
   MessageSquare, 
   Send,
-  AlertCircle,
   Building2
 } from 'lucide-react';
 
@@ -27,17 +26,17 @@ export function TaskItem({ task, onStatusChange, onEdit, onRefresh }) {
   const isBlocked = task.status === 'blocked';
 
   const priorityColors = {
-    1: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
-    2: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-    3: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30',
-    4: 'bg-slate-800 text-slate-400 border-slate-700'
+    1: 'bg-red-500/10 text-red-400 border-red-500/20',
+    2: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    3: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
+    4: 'bg-zinc-800 text-zinc-400 border-zinc-700/60'
   };
 
   const statusBadges = {
-    pending: 'bg-slate-800 text-slate-300 border-slate-700',
-    in_progress: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30',
+    pending: 'bg-zinc-800 text-zinc-300 border-zinc-700/60',
+    in_progress: 'bg-violet-500/15 text-violet-300 border-violet-500/30',
     completed: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-    blocked: 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+    blocked: 'bg-red-500/15 text-red-300 border-red-500/30'
   };
 
   const handleToggleCompleted = (e) => {
@@ -61,202 +60,195 @@ export function TaskItem({ task, onStatusChange, onEdit, onRefresh }) {
       const res = await fetch(`/api/tasks/${task.id}/notes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ note: newNote.trim(), author: 'Operations Lead' })
+        body: JSON.stringify({ note: newNote.trim() })
       });
       if (res.ok) {
         setNewNote('');
         if (onRefresh) onRefresh();
       }
     } catch (err) {
-      console.error('Failed to add note:', err);
+      console.error('Failed to append task note:', err);
     } finally {
       setSubmittingNote(false);
     }
   };
 
-  const notesList = task.task_notes ? task.task_notes.split('\n').filter(Boolean) : [];
-
   return (
-    <div className={`p-4 bg-slate-900/90 rounded-xl border transition shadow-sm ${
+    <div className={`rounded-xl border transition-colors shadow-sm overflow-hidden ${
       isCompleted 
-        ? 'border-slate-800/80 bg-slate-900/40 opacity-75' 
-        : 'border-slate-800 hover:border-slate-700/80'
+        ? 'bg-zinc-900/30 border-zinc-800/40 opacity-75' 
+        : 'bg-zinc-800/40 border-zinc-800/60 hover:border-zinc-700/70'
     }`}>
-      <div className="flex items-start justify-between gap-3">
-        {/* Toggle checkbox & Title */}
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          <button
-            onClick={handleToggleCompleted}
-            className="mt-1 text-slate-500 hover:text-emerald-400 transition shrink-0"
-            title={isCompleted ? 'Mark Pending' : 'Mark Completed'}
-          >
-            {isCompleted ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 fill-emerald-950" />
-            ) : (
-              <Circle className="w-4 h-4 hover:stroke-emerald-400" />
+      {/* Primary Row */}
+      <div className="p-3.5 flex items-start gap-3">
+        {/* Checkbox button */}
+        <button
+          onClick={handleToggleCompleted}
+          className="mt-0.5 text-zinc-500 hover:text-emerald-400 transition-colors shrink-0"
+          title={isCompleted ? 'Mark as In Progress' : 'Mark as Completed'}
+        >
+          {isCompleted ? (
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          ) : (
+            <Circle className="w-4 h-4 text-zinc-600 hover:text-zinc-400" />
+          )}
+        </button>
+
+        {/* Task Content */}
+        <div className="flex-1 min-w-0 space-y-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Priority Badge */}
+            <span className={`text-[10px] font-mono font-medium px-1.5 py-0.2 rounded border ${priorityColors[task.priority] || priorityColors[3]}`}>
+              P{task.priority || 3}
+            </span>
+
+            {/* Account pill */}
+            {task.account_id && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.2 rounded bg-zinc-900 text-zinc-400 border border-zinc-700/60">
+                <Building2 className="w-2.5 h-2.5 text-zinc-500" />
+                {task.account_id}
+              </span>
             )}
-          </button>
 
-          <div className="space-y-1.5 flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className={`text-xs font-semibold ${isCompleted ? 'line-through text-slate-500' : 'text-slate-100'}`}>
-                {task.title}
+            {/* Title */}
+            <span className={`text-xs font-semibold ${isCompleted ? 'line-through text-zinc-500' : 'text-zinc-100'}`}>
+              {task.title}
+            </span>
+          </div>
+
+          <p className="text-xs text-zinc-400 leading-relaxed line-clamp-2">
+            {task.description}
+          </p>
+
+          {/* Quick Meta Footer */}
+          <div className="flex items-center gap-3 text-[11px] text-zinc-500 pt-1 flex-wrap">
+            {task.owner && (
+              <span className="flex items-center gap-1">
+                <User className="w-3 h-3 text-zinc-500" />
+                <span>{task.owner}</span>
               </span>
+            )}
 
-              {/* Priority Badge */}
-              <span className={`font-mono text-[10px] font-bold px-1.5 py-0.2 rounded border ${priorityColors[task.priority] || priorityColors[2]}`}>
-                P{task.priority || 2}
+            {task.deadline && (
+              <span className="flex items-center gap-1 font-mono text-[10px] text-amber-400/90">
+                <Clock className="w-3 h-3 text-amber-400/70" />
+                <span>{task.deadline}</span>
               </span>
+            )}
 
-              {/* Account badge */}
-              <span className="inline-flex items-center gap-1 font-mono text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700">
-                <Building2 className="w-2.5 h-2.5 text-slate-400" />
-                {task.account_name || `Acc ${task.account_id}`}
-              </span>
-
-              {/* Deadline */}
-              {task.deadline && (
-                <span className="inline-flex items-center gap-1 text-[10px] text-amber-300 bg-amber-950/40 border border-amber-800/60 px-1.5 py-0.2 rounded font-mono">
-                  <Clock className="w-2.5 h-2.5" />
-                  Due: {String(task.deadline).split('T')[0]}
-                </span>
-              )}
-
-              {/* Status Selector */}
-              <select
-                value={task.status || 'pending'}
-                onChange={handleStatusSelect}
-                className={`text-[10px] font-mono font-medium px-1.5 py-0.5 rounded border focus:outline-none cursor-pointer capitalize ${statusBadges[task.status] || statusBadges.pending}`}
+            {task.evidence_source_id && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openEvidence(task.evidence_id || task.evidence_source_id);
+                }}
+                className="font-mono text-[10px] text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
               >
-                <option value="pending" className="bg-slate-900 text-slate-300">Pending</option>
-                <option value="in_progress" className="bg-slate-900 text-indigo-300">In Progress</option>
-                <option value="completed" className="bg-slate-900 text-emerald-300">Completed</option>
-                <option value="blocked" className="bg-slate-900 text-rose-300">Blocked</option>
-              </select>
-            </div>
-
-            {task.description && (
-              <p className="text-xs text-slate-400 leading-relaxed">
-                {task.description}
-              </p>
-            )}
-
-            {/* Expanded Reasoning & Outcome */}
-            {expanded && (
-              <div className="mt-3 pt-3 border-t border-slate-800/80 space-y-2 text-xs">
-                {task.reasoning && (
-                  <div className="p-2.5 bg-slate-950/60 rounded-lg text-slate-300 border border-slate-800/60">
-                    <strong className="block text-[10px] uppercase font-bold text-slate-400 font-mono mb-1">
-                      Deterministic Prioritization:
-                    </strong>
-                    {task.reasoning}
-                  </div>
-                )}
-                {task.expected_outcome && (
-                  <p className="text-[11px] text-slate-400">
-                    <strong className="text-slate-200">Expected Deliverable:</strong> {task.expected_outcome}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Task Progress Notes Log */}
-            {showNotes && (
-              <div className="mt-3 pt-3 border-t border-slate-800/80 space-y-2.5 text-xs bg-slate-950/40 p-3 rounded-lg border border-slate-800">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
-                    Progress Notes & Audit Log ({notesList.length})
-                  </span>
-                </div>
-
-                {notesList.length > 0 ? (
-                  <div className="space-y-1.5 max-h-36 overflow-y-auto font-mono text-[11px] text-slate-300 pr-1">
-                    {notesList.map((n, i) => (
-                      <div key={i} className="p-1.5 rounded bg-slate-900 border border-slate-800/80 text-slate-300">
-                        {n}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[11px] text-slate-500 italic">No notes logged yet.</p>
-                )}
-
-                {/* Inline Add Note Form */}
-                <form onSubmit={handleAddNote} className="flex gap-2 pt-1">
-                  <input
-                    type="text"
-                    value={newNote}
-                    onChange={(e) => setNewNote(e.target.value)}
-                    placeholder="Log a progress note or update..."
-                    className="flex-1 bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
-                  />
-                  <button
-                    type="submit"
-                    disabled={submittingNote || !newNote.trim()}
-                    className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded text-xs font-medium flex items-center gap-1 transition"
-                  >
-                    <Send className="w-3 h-3" />
-                    <span>Save</span>
-                  </button>
-                </form>
-              </div>
+                <FileText className="w-3 h-3" />
+                <span>{task.evidence_source_id}</span>
+              </button>
             )}
           </div>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="hidden sm:flex items-center gap-1 text-[11px] text-slate-400 bg-slate-950/60 px-2 py-1 rounded border border-slate-800">
-            <User className="w-3 h-3 text-slate-500" />
-            <span className="font-medium text-slate-300">{task.owner || 'Unassigned'}</span>
-          </div>
-
-          {/* Notes Toggle Button */}
-          <button
-            onClick={() => setShowNotes(!showNotes)}
-            className={`p-1.5 rounded text-xs flex items-center gap-1 border transition ${
-              notesList.length > 0
-                ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30 hover:bg-indigo-500/20'
-                : 'text-slate-400 border-slate-800 hover:bg-slate-800'
+        {/* Status Dropdown & Actions */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <select
+            value={task.status || 'pending'}
+            onChange={handleStatusSelect}
+            className={`text-[11px] font-medium font-mono px-2 py-1 rounded-lg border focus:outline-none transition-colors ${
+              statusBadges[task.status] || statusBadges.pending
             }`}
-            title="View & Add Task Notes"
           >
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span className="text-[10px] font-mono">{notesList.length}</span>
-          </button>
+            <option value="pending">Pending</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="blocked">Blocked</option>
+          </select>
 
-          {/* Edit Task Modal Trigger */}
           {onEdit && (
             <button
               onClick={() => onEdit(task)}
-              className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800 transition"
-              title="Edit Task Configuration"
+              className="p-1 rounded-lg hover:bg-zinc-700/60 text-zinc-500 hover:text-zinc-300 transition-colors"
+              title="Edit Task"
             >
               <Edit3 className="w-3.5 h-3.5" />
             </button>
           )}
 
-          {/* Clickable Evidence Link */}
-          {task.evidence_id && (
-            <button
-              onClick={() => openEvidence(task.evidence_id)}
-              className="text-[10px] font-mono text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/30 flex items-center gap-1 transition"
-              title="Inspect unedited source evidence"
-            >
-              <FileText className="w-3 h-3" />
-              Source
-            </button>
-          )}
-
-          {/* Expand Details */}
           <button
             onClick={() => setExpanded(!expanded)}
-            className="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 transition"
+            className="p-1 rounded-lg hover:bg-zinc-700/60 text-zinc-500 hover:text-zinc-300 transition-colors"
+            title={expanded ? 'Collapse' : 'Expand Details'}
           >
             {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
         </div>
       </div>
+
+      {/* Expanded Details & Notes Drawer */}
+      {expanded && (
+        <div className="px-4 pb-4 pt-1 border-t border-zinc-800/60 space-y-3 bg-zinc-900/40 text-xs">
+          {task.reasoning && (
+            <div className="p-2.5 bg-violet-500/10 border border-violet-500/20 rounded-lg text-violet-300 text-[11px]">
+              <strong className="block text-[10px] uppercase font-semibold text-violet-400 mb-0.5">
+                Deterministic Basis:
+              </strong>
+              {task.reasoning}
+            </div>
+          )}
+
+          {task.expected_outcome && (
+            <div className="text-[11px] text-zinc-400">
+              <strong className="text-zinc-300">Expected Outcome:</strong> {task.expected_outcome}
+            </div>
+          )}
+
+          {/* Operational Progress Notes */}
+          <div className="space-y-2 pt-1 border-t border-zinc-800/60">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase font-semibold text-zinc-400 tracking-wider">
+                Progress Notes
+              </span>
+              <button
+                onClick={() => setShowNotes(!showNotes)}
+                className="text-[11px] text-blue-400 hover:text-blue-300 flex items-center gap-1 font-medium transition-colors"
+              >
+                <MessageSquare className="w-3 h-3" />
+                <span>{showNotes ? 'Hide Notes' : 'Add Progress Note'}</span>
+              </button>
+            </div>
+
+            {task.task_notes && (
+              <pre className="p-2.5 bg-zinc-900 rounded-lg border border-zinc-800 text-[11px] font-mono text-zinc-300 whitespace-pre-wrap leading-relaxed">
+                {task.task_notes}
+              </pre>
+            )}
+
+            {showNotes && (
+              <form onSubmit={handleAddNote} className="space-y-2 pt-1">
+                <textarea
+                  rows="2"
+                  value={newNote}
+                  onChange={(e) => setNewNote(e.target.value)}
+                  placeholder="Record timestamped execution progress or blocker..."
+                  className="w-full p-2 bg-zinc-900 border border-zinc-700/60 rounded-lg text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                />
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={submittingNote || !newNote.trim()}
+                    className="px-3 py-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                  >
+                    <Send className="w-3 h-3" />
+                    <span>Append Note</span>
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

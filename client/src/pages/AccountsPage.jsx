@@ -5,17 +5,14 @@ import AddAccountModal from '../components/AddAccountModal';
 import { 
   Building2, 
   ShieldCheck, 
-  DollarSign, 
   ArrowRight, 
   Clock, 
   AlertTriangle, 
   Target, 
-  Radio, 
   HeartHandshake,
-  CheckCircle2,
   Plus,
   RefreshCw,
-  ExternalLink
+  Loader2
 } from 'lucide-react';
 
 export function AccountsPage() {
@@ -36,15 +33,15 @@ export function AccountsPage() {
     fetchAccounts();
   }, []);
 
-  const handleAccountCreated = (newAcc) => {
+  const handleAccountCreated = () => {
     fetchAccounts();
   };
 
-  if (loading) {
+  if (loading && summaries.length === 0) {
     return (
       <div className="py-24 text-center space-y-3">
-        <RefreshCw className="w-7 h-7 animate-spin text-emerald-400 mx-auto" />
-        <p className="text-xs text-slate-400 font-medium">Compiling account portfolio summaries...</p>
+        <Loader2 className="w-8 h-8 animate-spin text-blue-400 mx-auto" />
+        <p className="text-xs text-zinc-500 font-medium">Compiling account portfolio summaries...</p>
       </div>
     );
   }
@@ -52,34 +49,34 @@ export function AccountsPage() {
   return (
     <div className="space-y-6 pb-12">
       {/* Page Title & Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-800/60">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-blue-400 font-semibold bg-blue-500/10 px-2 py-0.5 rounded">
               Portfolio Overview
             </span>
-            <span className="text-xs text-slate-600">•</span>
-            <span className="text-xs font-mono text-slate-400">{summaries.length} Accounts Monitored</span>
+            <span className="text-xs text-zinc-600">•</span>
+            <span className="text-xs font-mono text-zinc-400">{summaries.length} Accounts Monitored</span>
           </div>
-          <h1 className="text-xl font-bold text-white tracking-tight">
-            Customer Accounts & Portfolio Reality
+          <h1 className="text-xl font-bold text-zinc-100 tracking-tight">
+            Customer Accounts & Portfolio
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Operational and commercial reality of assigned customer accounts for executive review.
+          <p className="text-xs text-zinc-500 mt-0.5">
+            Operational and commercial reality of assigned customer accounts.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <button
             onClick={fetchAccounts}
-            className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-2 rounded-lg bg-zinc-800/70 border border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/70 transition-colors"
             title="Refresh Portfolio"
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => setIsAddAccountOpen(true)}
-            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium shadow-sm transition flex items-center gap-1.5 active:scale-95"
+            className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-medium shadow-sm transition-colors flex items-center gap-1.5 active:scale-95"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Account</span>
@@ -88,7 +85,7 @@ export function AccountsPage() {
       </div>
 
       {/* Account Cards Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {summaries.map((acc) => {
           const isAtRisk = acc.healthBadgeColor === 'red';
           const isWarning = acc.healthBadgeColor === 'amber';
@@ -96,114 +93,98 @@ export function AccountsPage() {
           return (
             <div
               key={acc.accountId}
-              className="bg-slate-900/95 rounded-2xl border border-slate-800 p-6 shadow-sm flex flex-col justify-between space-y-5 hover:border-slate-700 transition"
+              className="bg-zinc-800/40 rounded-xl border border-zinc-800/60 p-5 shadow-sm flex flex-col justify-between space-y-4 hover:border-zinc-700/80 transition-colors"
             >
               <div className="space-y-4">
-                {/* Header Row */}
-                <div className="flex items-start justify-between gap-3 border-b border-slate-800/80 pb-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                      <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                        Acc {acc.accountId}
+                {/* Header */}
+                <div className="flex items-start justify-between gap-3 border-b border-zinc-800/50 pb-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-zinc-900 text-zinc-400 border border-zinc-700/60">
+                        {acc.accountId}
                       </span>
-                      <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider font-mono">
-                        {acc.statusCategory || acc.industry}
+                      <span className="text-xs text-zinc-500 font-medium">
+                        {acc.industry}
                       </span>
                     </div>
-                    <h2 className="text-lg font-bold text-white leading-tight">
+                    <h3 className="text-base font-bold text-zinc-100 leading-tight">
                       {acc.name}
-                    </h2>
+                    </h3>
                   </div>
 
-                  <span
-                    className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full border ${
-                      isAtRisk
-                        ? 'bg-rose-500/10 text-rose-300 border-rose-500/30'
-                        : isWarning
-                        ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
-                        : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
-                    }`}
-                  >
+                  <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider font-mono border ${
+                    isAtRisk ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                    isWarning ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                    'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                  }`}>
                     {acc.healthBadge}
                   </span>
                 </div>
 
-                {/* One-Line Verdict */}
-                <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold block mb-1">
-                    Bottom-Line Reality
-                  </span>
-                  <p className="text-xs text-slate-200 leading-relaxed font-medium">
-                    {acc.oneLineVerdict}
-                  </p>
-                </div>
+                {/* One Line Verdict */}
+                <p className="text-xs text-zinc-300 bg-zinc-900/60 p-3 rounded-lg border border-zinc-800/50 leading-relaxed font-medium">
+                  {acc.oneLineVerdict}
+                </p>
 
-                {/* Metrics Matrix */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 font-mono text-center">
-                  <div className="p-2.5 rounded-lg bg-slate-950/50 border border-slate-800/80">
-                    <span className="text-[10px] uppercase text-slate-400 block">Verified Book</span>
-                    <span className="text-xs font-bold text-emerald-400">{acc.metrics.verifiedRevenue}</span>
+                {/* Core Metrics */}
+                <div className="grid grid-cols-3 gap-2 p-3 bg-zinc-900/40 rounded-lg border border-zinc-800/50 text-xs">
+                  <div>
+                    <span className="text-[10px] text-zinc-500 uppercase font-medium block">Verified Book</span>
+                    <strong className="text-emerald-400 font-bold text-sm block font-mono">
+                      {acc.metrics?.verifiedRevenue || '$0'}
+                    </strong>
+                    <span className="text-[10px] text-zinc-500 block font-mono">
+                      + {acc.metrics?.pipelineValue || '$0'} pipe
+                    </span>
                   </div>
-                  <div className="p-2.5 rounded-lg bg-slate-950/50 border border-slate-800/80">
-                    <span className="text-[10px] uppercase text-slate-400 block">Pipeline Value</span>
-                    <span className="text-xs font-bold text-slate-200">{acc.metrics.pipelineValue}</span>
+                  <div>
+                    <span className="text-[10px] text-zinc-500 uppercase font-medium block">Active Fleet</span>
+                    <span className="text-zinc-300 font-medium text-xs block mt-0.5">
+                      {acc.metrics?.activeFleet?.split('(')[0] || '14 Docks'}
+                    </span>
                   </div>
-                  <div className="p-2.5 rounded-lg bg-slate-950/50 border border-slate-800/80">
-                    <span className="text-[10px] uppercase text-slate-400 block">Sentiment</span>
-                    <div className="flex items-center justify-center gap-1 mt-0.5">
-                      <span className="text-xs font-bold text-white">{acc.metrics.sentimentScore}/100</span>
-                    </div>
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-slate-950/50 border border-slate-800/80">
-                    <span className="text-[10px] uppercase text-slate-400 block">Active Risks</span>
-                    <span className={`text-xs font-bold ${acc.metrics.riskCount > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                      {acc.metrics.riskCount} Open
+                  <div>
+                    <span className="text-[10px] text-zinc-500 uppercase font-medium block">Term Expiry</span>
+                    <span className="text-zinc-300 text-xs block mt-0.5 font-mono">
+                      {acc.metrics?.renewalDate?.split('(')[0] || 'Rolling'}
                     </span>
                   </div>
                 </div>
 
-                {/* Operational & Commercial Synthesis */}
-                <div className="space-y-2 text-xs pt-1">
+                {/* Operational Synthesis */}
+                <div className="space-y-2 text-xs">
                   <div>
-                    <strong className="text-slate-300 font-semibold block mb-0.5">Commercial Status:</strong>
-                    <p className="text-slate-400 leading-relaxed">{acc.commercialSummary}</p>
+                    <strong className="text-zinc-400 block text-[10px] uppercase font-semibold">Operational Reality:</strong>
+                    <p className="text-zinc-400 text-xs leading-relaxed mt-0.5">
+                      {acc.operationalSummary}
+                    </p>
                   </div>
-                  <div>
-                    <strong className="text-slate-300 font-semibold block mb-0.5">Operational Context:</strong>
-                    <p className="text-slate-400 leading-relaxed">{acc.operationalSummary}</p>
-                  </div>
-                </div>
 
-                {/* Critical Monday Decision */}
-                <div className="p-3 bg-indigo-950/20 border border-indigo-800/40 rounded-xl space-y-1">
-                  <div className="flex items-center gap-1.5 text-indigo-400">
-                    <AlertTriangle className="w-3.5 h-3.5" />
-                    <span className="text-[10px] font-mono uppercase tracking-wider font-bold">
-                      Required Monday Leadership Move
-                    </span>
+                  <div>
+                    <strong className="text-zinc-400 block text-[10px] uppercase font-semibold">Immediate Priority Action:</strong>
+                    <p className="text-blue-300 text-xs leading-relaxed mt-0.5 font-medium">
+                      {acc.criticalDecision}
+                    </p>
                   </div>
-                  <p className="text-xs text-indigo-200 leading-relaxed font-medium">
-                    {acc.criticalDecision}
-                  </p>
                 </div>
               </div>
 
-              {/* Bottom Action Footer */}
-              <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-3">
+              {/* Action Buttons */}
+              <div className="pt-3 border-t border-zinc-800/50 flex items-center justify-between">
                 <Link
                   to={`/timeline?accountId=${acc.accountId}`}
-                  className="text-xs font-medium text-slate-400 hover:text-white flex items-center gap-1.5 transition"
+                  className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-1.5 transition-colors font-medium"
                 >
-                  <Clock className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Interaction Timeline</span>
+                  <Clock className="w-3.5 h-3.5 text-zinc-500" />
+                  <span>Timeline</span>
                 </Link>
 
                 <Link
                   to={`/accounts/${acc.accountId}`}
-                  className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-medium rounded-lg border border-slate-700 transition flex items-center gap-1.5"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-zinc-700/50 hover:bg-zinc-700 text-zinc-200 rounded-lg text-xs font-semibold border border-zinc-700/60 transition-colors"
                 >
-                  <span>Open Account Intelligence</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Open Deep Dive</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-blue-400" />
                 </Link>
               </div>
             </div>
@@ -211,7 +192,6 @@ export function AccountsPage() {
         })}
       </div>
 
-      {/* Add Account Modal */}
       <AddAccountModal
         isOpen={isAddAccountOpen}
         onClose={() => setIsAddAccountOpen(false)}

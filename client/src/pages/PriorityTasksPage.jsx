@@ -2,21 +2,19 @@ import React, { useState, useEffect } from 'react';
 import TaskItem from '../components/TaskItem';
 import CreateTaskModal from '../components/CreateTaskModal';
 import EditTaskModal from '../components/EditTaskModal';
+import AccountSelector from '../components/AccountSelector';
 import { 
   CheckSquare, 
-  Filter, 
   Clock, 
   CheckCircle2, 
   AlertTriangle, 
-  Layers, 
   Plus, 
   RefreshCw,
-  Building2
+  Loader2
 } from 'lucide-react';
 
 export function PriorityTasksPage() {
   const [tasks, setTasks] = useState([]);
-  const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [accountFilter, setAccountFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -40,19 +38,8 @@ export function PriorityTasksPage() {
     }
   };
 
-  const fetchAccounts = async () => {
-    try {
-      const res = await fetch('/api/accounts');
-      if (res.ok) {
-        const data = await res.json();
-        setAccounts(Array.isArray(data) ? data : []);
-      }
-    } catch (err) {}
-  };
-
   useEffect(() => {
     fetchTasks();
-    fetchAccounts();
   }, []);
 
   const handleStatusChange = async (taskId, newStatus) => {
@@ -69,7 +56,7 @@ export function PriorityTasksPage() {
     }
   };
 
-  const handleTaskCreated = (newTask) => {
+  const handleTaskCreated = () => {
     fetchTasks();
   };
 
@@ -99,27 +86,27 @@ export function PriorityTasksPage() {
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-800/60">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-mono uppercase tracking-wider text-indigo-400 font-semibold">
-              Action Execution Engine
+            <span className="text-[10px] font-mono uppercase tracking-wider text-violet-400 font-semibold bg-violet-500/10 px-2 py-0.5 rounded">
+              Operational Queue
             </span>
-            <span className="text-xs text-slate-600">•</span>
-            <span className="text-xs font-mono text-slate-400">{tasks.length} Total Moves</span>
+            <span className="text-xs text-zinc-600">•</span>
+            <span className="text-xs font-mono text-zinc-400">{tasks.length} Total Moves</span>
           </div>
-          <h1 className="text-xl font-bold text-white tracking-tight">
+          <h1 className="text-xl font-bold text-zinc-100 tracking-tight">
             Priority Operational Tasks
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Manage, configure, and note critical operational commitments and customer escalations.
+          <p className="text-xs text-zinc-500 mt-0.5">
+            Ranked deliverables, customer commitments, and field escalations.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <button
             onClick={fetchTasks}
-            className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-2 rounded-lg bg-zinc-800/70 border border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/70 transition-colors"
             title="Refresh Tasks"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -127,7 +114,7 @@ export function PriorityTasksPage() {
 
           <button
             onClick={() => setIsCreateOpen(true)}
-            className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-medium shadow-sm transition flex items-center gap-1.5 active:scale-95"
+            className="px-3.5 py-1.5 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-xs font-medium shadow-sm transition-colors flex items-center gap-1.5 active:scale-95"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Create Task</span>
@@ -137,122 +124,90 @@ export function PriorityTasksPage() {
 
       {/* Metric Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-xl space-y-1">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">Total Tasks</span>
-          <div className="text-xl font-bold text-white font-mono">{tasks.length}</div>
+        <div className="bg-zinc-800/40 border border-zinc-800/60 p-3.5 rounded-xl space-y-1">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500">Total Tasks</span>
+          <div className="text-lg font-bold text-zinc-100 font-mono">{tasks.length}</div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-xl space-y-1">
+        <div className="bg-zinc-800/40 border border-zinc-800/60 p-3.5 rounded-xl space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-rose-400">Critical P1</span>
-            <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+            <span className="text-[10px] font-mono uppercase tracking-wider text-red-400">Critical P1</span>
+            <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
           </div>
-          <div className="text-xl font-bold text-rose-400 font-mono">{criticalCount}</div>
+          <div className="text-lg font-bold text-red-400 font-mono">{criticalCount}</div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-xl space-y-1">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-indigo-400">In Progress / Pending</span>
-          <div className="text-xl font-bold text-indigo-300 font-mono">{pendingCount}</div>
+        <div className="bg-zinc-800/40 border border-zinc-800/60 p-3.5 rounded-xl space-y-1">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-violet-400">In Progress</span>
+          <div className="text-lg font-bold text-violet-300 font-mono">{pendingCount}</div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-xl space-y-1">
+        <div className="bg-zinc-800/40 border border-zinc-800/60 p-3.5 rounded-xl space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-400">Completed</span>
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
           </div>
-          <div className="text-xl font-bold text-emerald-400 font-mono">{completedCount}</div>
+          <div className="text-lg font-bold text-emerald-400 font-mono">{completedCount}</div>
         </div>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
-        {/* Account Filter */}
+      <div className="bg-zinc-800/40 p-3.5 rounded-xl border border-zinc-800/60 flex flex-wrap items-center justify-between gap-3 text-xs">
+        {/* Elegant Account Filter */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-slate-400 text-[11px] font-medium">Account:</span>
-          <button
-            onClick={() => setAccountFilter('ALL')}
-            className={`px-2.5 py-1 rounded-md transition text-xs font-medium border ${
-              accountFilter === 'ALL'
-                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
-                : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
-            }`}
-          >
-            All Accounts
-          </button>
-          {accounts.map((acc) => {
-            const accId = acc.accountId || acc.id;
-            return (
-              <button
-                key={accId}
-                onClick={() => setAccountFilter(accId)}
-                className={`px-2.5 py-1 rounded-md transition text-xs font-medium border ${
-                  accountFilter === accId
-                    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
-                    : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
-                }`}
-              >
-                {acc.name.split(' ')[0]} ({accId})
-              </button>
-            );
-          })}
+          <AccountSelector
+            value={accountFilter}
+            onChange={setAccountFilter}
+            allLabel="All Accounts"
+          />
         </div>
 
         {/* Priority & Status Filters */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-1.5">
-            <span className="text-slate-400 text-[11px] font-medium">Priority:</span>
-            <select
-              value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-slate-200 focus:outline-none focus:border-indigo-500 text-xs font-mono"
-            >
-              <option value="ALL">All Priorities</option>
-              <option value="1">P1 - Critical</option>
-              <option value="2">P2 - High</option>
-              <option value="3">P3 - Medium</option>
-            </select>
-          </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+            className="border border-zinc-700/60 rounded-lg px-2.5 py-1.5 bg-zinc-800/70 text-zinc-200 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+          >
+            <option value="ALL">All Priorities</option>
+            <option value="1">P1 - Critical Priority</option>
+            <option value="2">P2 - High Priority</option>
+            <option value="3">P3 - Standard Priority</option>
+          </select>
 
-          <div className="flex items-center gap-1.5">
-            <span className="text-slate-400 text-[11px] font-medium">Status:</span>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-slate-200 focus:outline-none focus:border-indigo-500 text-xs capitalize"
-            >
-              <option value="ALL">All Statuses</option>
-              <option value="pending">Pending & Active</option>
-              <option value="in_progress">In Progress</option>
-              <option value="completed">Completed</option>
-              <option value="blocked">Blocked</option>
-            </select>
-          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="border border-zinc-700/60 rounded-lg px-2.5 py-1.5 bg-zinc-800/70 text-zinc-200 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+          >
+            <option value="ALL">All Statuses</option>
+            <option value="pending">Open / In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="blocked">Blocked</option>
+          </select>
         </div>
       </div>
 
-      {/* Tasks List */}
-      {loading ? (
-        <div className="py-20 text-center space-y-3">
-          <RefreshCw className="w-6 h-6 animate-spin text-indigo-400 mx-auto" />
-          <p className="text-xs text-slate-400">Loading priority task roster...</p>
-        </div>
-      ) : filteredTasks.length === 0 ? (
-        <div className="p-12 text-center bg-slate-900 border border-slate-800 rounded-xl space-y-3">
-          <CheckSquare className="w-8 h-8 text-slate-600 mx-auto" />
-          <h3 className="text-sm font-semibold text-slate-300">No Matching Tasks</h3>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            All filtered operational moves have been completed or match no active records.
-          </p>
-          <button
-            onClick={() => setIsCreateOpen(true)}
-            className="mt-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-xs text-white rounded-md transition"
-          >
-            Create Operational Task
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {filteredTasks.map((task) => (
+      {/* Task List */}
+      <div className="space-y-3">
+        {loading ? (
+          <div className="py-16 text-center space-y-2">
+            <Loader2 className="w-6 h-6 animate-spin text-blue-400 mx-auto" />
+            <p className="text-xs text-zinc-500">Loading priority task queue...</p>
+          </div>
+        ) : filteredTasks.length === 0 ? (
+          <div className="py-16 text-center bg-zinc-800/30 rounded-xl border border-zinc-800/60 space-y-2">
+            <CheckSquare className="w-8 h-8 text-zinc-600 mx-auto" />
+            <p className="text-xs text-zinc-400 font-medium">No tasks match your filter criteria.</p>
+            <button
+              onClick={() => { setAccountFilter('ALL'); setStatusFilter('ALL'); setPriorityFilter('ALL'); }}
+              className="text-xs text-blue-400 hover:text-blue-300 underline"
+            >
+              Reset all filters
+            </button>
+          </div>
+        ) : (
+          filteredTasks.map((task) => (
             <TaskItem
               key={task.id}
               task={task}
@@ -260,23 +215,22 @@ export function PriorityTasksPage() {
               onEdit={(t) => setEditingTask(t)}
               onRefresh={fetchTasks}
             />
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
 
-      {/* Create Task Modal */}
+      {/* Global Modals */}
       <CreateTaskModal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         onTaskCreated={handleTaskCreated}
-        initialAccountId={accountFilter !== 'ALL' ? accountFilter : undefined}
+        defaultAccountId={accountFilter !== 'ALL' ? accountFilter : undefined}
       />
 
-      {/* Edit Task Modal */}
       <EditTaskModal
-        isOpen={Boolean(editingTask)}
-        onClose={() => setEditingTask(null)}
+        isOpen={!!editingTask}
         task={editingTask}
+        onClose={() => setEditingTask(null)}
         onTaskUpdated={handleTaskUpdated}
         onTaskDeleted={handleTaskDeleted}
       />

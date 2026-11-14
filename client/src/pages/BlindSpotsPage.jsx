@@ -1,121 +1,133 @@
 import React, { useState, useEffect } from 'react';
 import { useEvidence } from '../context/EvidenceContext';
-import { EyeOff, HelpCircle, FileText, ChevronRight, AlertCircle } from 'lucide-react';
+import AccountSelector from '../components/AccountSelector';
+import { HelpCircle, FileText, Loader2 } from 'lucide-react';
 
 export function BlindSpotsPage() {
-  const [gapsA, setGapsA] = useState([]);
-  const [gapsB, setGapsB] = useState([]);
+  const [gaps, setGaps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [accountFilter, setAccountFilter] = useState('ALL');
   const { openEvidence } = useEvidence();
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/accounts/A/gaps').then(r => r.json()),
-      fetch('/api/accounts/B/gaps').then(r => r.json())
-    ]).then(([resA, resB]) => {
-      setGapsA((resA.gaps || []).map(g => ({ ...g, account_id: 'A', account_name: 'Eastern Counties Police Alliance' })));
-      setGapsB((resB.gaps || []).map(g => ({ ...g, account_id: 'B', account_name: 'Aldermoor Industrial Group' })));
-    }).catch(console.error)
+    fetch('/api/accounts')
+      .then(res => res.json())
+      .then(async (accs) => {
+        if (!Array.isArray(accs)) return;
+        const all = [];
+        await Promise.all(
+          accs.map(async (acc) => {
+            const accId = acc.accountId || acc.id;
+            try {
+              const res = await fetch(`/api/accounts/${accId}/gaps`);
+              if (res.ok) {
+                const gData = await res.json();
+                if (gData.gaps && Array.isArray(gData.gaps)) {
+                  gData.gaps.forEach(g => {
+                    all.push({
+                      ...g,
+                      account_id: accId,
+                      account_name: acc.name
+                    });
+                  });
+                }
+              }
+            } catch (err) {
+              console.error(`Failed to load gaps for ${accId}:`, err);
+            }
+          })
+        );
+        setGaps(all);
+      })
+      .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
-  const allGaps = [...gapsA, ...gapsB];
-  const filteredGaps = allGaps.filter(g => accountFilter === 'ALL' || g.account_id === accountFilter);
+  const filteredGaps = gaps.filter(g => accountFilter === 'ALL' || g.account_id === accountFilter);
 
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Blind-Spot Finder</h1>
-          <p className="text-xs text-slate-500 mt-1">
+          <h1 className="text-xl font-bold text-zinc-100 tracking-tight">Blind-Spot Finder</h1>
+          <p className="text-xs text-zinc-500 mt-0.5">
             Identifies missing strategic information and formulates actionable discovery questions.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 text-xs">
-          {['ALL', 'A', 'B'].map((acc) => (
-            <button
-              key={acc}
-              onClick={() => setAccountFilter(acc)}
-              className={`px-3 py-1.5 rounded-lg font-medium transition ${
-                accountFilter === acc
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              {acc === 'ALL' ? 'All Accounts' : acc === 'A' ? 'Eastern Counties' : 'Aldermoor'}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <AccountSelector
+            value={accountFilter}
+            onChange={setAccountFilter}
+            allLabel="All Accounts"
+          />
         </div>
       </div>
 
-      {/* Gaps Grid */}
-      <div className="space-y-4">
-        {filteredGaps.length === 0 ? (
-          <div className="py-16 text-center text-slate-400 text-xs bg-white rounded-2xl border border-slate-200">
-            No blind spots currently unaddressed.
-          </div>
-        ) : (
-          filteredGaps.map((gap) => (
+      {/* Gaps List */}
+      {loading ? (
+        <div className="py-24 text-center space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-400 mx-auto" />
+          <p className="text-xs text-zinc-500">Scanning intelligence blind spots across accounts...</p>
+        </div>
+      ) : filteredGaps.length === 0 ? (
+        <div className="py-16 text-center bg-zinc-800/30 rounded-xl border border-zinc-800/60 text-zinc-500 text-xs">
+          No blind spots match the selected account filter.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filteredGaps.map((gap) => (
             <div
               key={gap.id}
-              className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition space-y-3"
+              className="p-4 rounded-xl border border-zinc-800/60 bg-zinc-800/40 space-y-2.5 hover:border-zinc-700/80 transition-colors shadow-sm"
             >
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
-                      Account {gap.account_id}
-                    </span>
-                    <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">
-                      {gap.priority || 'Medium'} Priority
-                    </span>
-                    <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                      <HelpCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                      {gap.missing_information}
-                    </h3>
-                  </div>
-                  <span className="text-xs text-slate-500 block">
-                    {gap.account_name}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-mono text-[10px] font-semibold px-1.5 py-0.2 rounded bg-zinc-900 text-zinc-400 border border-zinc-700/60">
+                    {gap.account_id}
                   </span>
+                  <h3 className="font-semibold text-zinc-100 text-xs flex items-center gap-1.5">
+                    <HelpCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                    {gap.missing_information}
+                  </h3>
                 </div>
+                <span className="text-[10px] font-medium uppercase px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono">
+                  {gap.priority} Priority
+                </span>
               </div>
 
-              <p className="text-xs text-slate-700 leading-relaxed">
-                <strong className="text-slate-900">Why It Matters:</strong> {gap.importance}
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                <strong className="text-zinc-300">Why It Matters:</strong> {gap.importance}
               </p>
 
-              {/* Recommended Question box */}
-              <div className="p-4 bg-amber-50/60 border border-amber-200/80 rounded-xl text-xs space-y-1">
-                <strong className="block text-[11px] uppercase tracking-wider text-amber-900 font-bold">
-                  Recommended Question To Ask Stakeholder:
+              <div className="p-3 bg-zinc-900/60 border border-zinc-800/80 rounded-lg text-xs">
+                <strong className="text-zinc-400 block text-[10px] uppercase mb-1">
+                  Recommended Question to Ask:
                 </strong>
-                <p className="text-slate-900 font-medium italic text-sm leading-relaxed">
+                <p className="text-blue-300 font-medium italic">
                   "{gap.recommended_question}"
                 </p>
               </div>
 
-              {/* Footer */}
-              <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
-                <span className="text-slate-500">
-                  Target Information Lead: <strong className="text-slate-800">{gap.suggested_owner}</strong>
+              <div className="flex items-center justify-between text-[11px] pt-1 border-t border-zinc-800/60">
+                <span className="text-zinc-500">
+                  Suggested Lead: <strong className="text-zinc-300">{gap.suggested_owner}</strong>
                 </span>
                 {gap.evidence_source_id && (
                   <button
                     onClick={() => openEvidence(gap.evidence_id || gap.evidence_source_id)}
-                    className="text-emerald-700 hover:text-emerald-800 font-mono text-[10px] underline flex items-center gap-1"
+                    className="text-blue-400 hover:text-blue-300 font-mono text-[10px] flex items-center gap-1 transition-colors"
                   >
-                    <FileText className="w-3.5 h-3.5" />
+                    <FileText className="w-3 h-3" />
                     Evidence: {gap.evidence_source_id}
                   </button>
                 )}
               </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

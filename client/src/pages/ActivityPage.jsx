@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useEvidence } from '../context/EvidenceContext';
-import { Activity, Radio, FileText, CheckCircle2, Clock, ShieldAlert, Sparkles } from 'lucide-react';
+import { Activity, Radio, FileText, CheckCircle2, Clock, Loader2 } from 'lucide-react';
 
 export function ActivityPage() {
   const [activities, setActivities] = useState([]);
@@ -33,112 +33,96 @@ export function ActivityPage() {
     <div className="space-y-6 pb-12">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Activity & Signal Timeline</h1>
-        <p className="text-xs text-slate-500 mt-1">
+        <h1 className="text-xl font-bold text-zinc-100 tracking-tight">Activity & Signal Timeline</h1>
+        <p className="text-xs text-zinc-500 mt-0.5">
           Real-time chronological audit trail of MCP tool responses, live signals, and CRM operations.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Main Activity Timeline */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h2 className="font-bold text-slate-900 text-base flex items-center gap-2">
-              <Activity className="w-4 h-4 text-emerald-600" />
+        <div className="lg:col-span-2 bg-zinc-800/40 rounded-xl border border-zinc-800/60 p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-zinc-800/50 pb-3">
+            <h2 className="font-semibold text-zinc-100 text-sm flex items-center gap-2">
+              <Activity className="w-4 h-4 text-emerald-400" />
               Chronological Audit Log
             </h2>
-            <span className="text-xs text-slate-400">{activities.length} recorded events</span>
+            <span className="text-xs text-zinc-500 font-mono">{activities.length} recorded events</span>
           </div>
 
-          <div className="space-y-4 relative before:absolute before:inset-0 before:left-3.5 before:w-0.5 before:bg-slate-200">
-            {activities.length === 0 ? (
-              <div className="py-12 text-center text-slate-400 text-xs">
-                No activity records yet.
+          <div className="space-y-3">
+            {loading && activities.length === 0 ? (
+              <div className="py-12 text-center">
+                <Loader2 className="w-6 h-6 animate-spin text-blue-400 mx-auto" />
+              </div>
+            ) : activities.length === 0 ? (
+              <div className="py-8 text-center text-zinc-500 text-xs">
+                No activity logs recorded yet.
               </div>
             ) : (
               activities.map((act) => (
-                <div key={act.id} className="relative flex items-start gap-4 pl-8 text-xs">
-                  <div className="absolute left-1.5 top-1.5 w-4 h-4 rounded-full bg-slate-900 border-2 border-white ring-2 ring-slate-100 flex items-center justify-center">
-                    <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
-                  </div>
-
-                  <div className="bg-slate-50 border border-slate-200/80 p-4 rounded-xl flex-1 space-y-1">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <strong className="text-slate-900 text-sm font-semibold">{act.title}</strong>
-                      <span className="font-mono text-[10px] text-slate-400">
-                        {new Date(act.timestamp).toLocaleString()}
-                      </span>
-                    </div>
-
-                    <p className="text-slate-600 leading-relaxed text-xs">{act.description}</p>
-
-                    <div className="flex items-center gap-2 pt-1">
-                      <span className="font-mono text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-white text-slate-700 border border-slate-200">
-                        Type: {act.type}
-                      </span>
+                <div key={act.id} className="p-3.5 bg-zinc-900/50 rounded-lg border border-zinc-800/60 space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-zinc-200 text-xs">{act.title}</span>
                       {act.account_id && (
-                        <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-900 text-white">
-                          Account {act.account_id}
+                        <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 border border-zinc-700/60">
+                          Acc {act.account_id}
                         </span>
                       )}
                     </div>
+                    <span className="font-mono text-[10px] text-zinc-500">
+                      {new Date(act.timestamp).toLocaleTimeString()}
+                    </span>
                   </div>
+                  <p className="text-xs text-zinc-400 leading-relaxed">{act.description}</p>
                 </div>
               ))
             )}
           </div>
         </div>
 
-        {/* Live MCP Signals stream */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h2 className="font-bold text-slate-900 text-base flex items-center gap-2">
-              <Radio className="w-4 h-4 text-blue-600 animate-pulse" />
-              Live MCP Signals
+        {/* Live Signals Stream */}
+        <div className="bg-zinc-800/40 rounded-xl border border-zinc-800/60 p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-zinc-800/50 pb-3">
+            <h2 className="font-semibold text-zinc-100 text-sm flex items-center gap-2">
+              <Radio className="w-4 h-4 text-red-400" />
+              Live Telemetry Signals
             </h2>
-            <span className="text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded font-semibold">
-              {signals.length} Signals
-            </span>
+            <span className="text-xs text-zinc-500 font-mono">{signals.length} signals</span>
           </div>
 
           <div className="space-y-3">
             {signals.length === 0 ? (
-              <div className="py-12 text-center text-slate-400 text-xs">
-                No external signals received yet.
+              <div className="py-8 text-center text-zinc-500 text-xs">
+                Awaiting incoming MCP signals.
               </div>
             ) : (
-              signals.map((sig) => {
-                const payload = typeof sig.payload === 'object' ? sig.payload : JSON.parse(sig.payload || '{}');
-                return (
-                  <div key={sig.id} className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-900 text-white">
-                        {sig.external_id || sig.id}
-                      </span>
-                      <span className="text-[10px] text-slate-400">
-                        {new Date(sig.detected_at).toLocaleTimeString()}
-                      </span>
-                    </div>
-
-                    <strong className="text-slate-900 block font-semibold">
-                      {payload.title || 'Signal Event'}
-                    </strong>
-
-                    <p className="text-slate-600 text-[11px] leading-relaxed">
-                      {payload.summary || payload.text || JSON.stringify(payload).slice(0, 120)}
-                    </p>
-
-                    <div className="pt-1 flex items-center justify-between text-[10px]">
-                      <span className="text-emerald-700 font-semibold uppercase">
-                        Status: {sig.processing_status}
-                      </span>
-                      {sig.account_id && (
-                        <span className="text-slate-500 font-semibold">Account {sig.account_id}</span>
-                      )}
-                    </div>
+              signals.map((sig) => (
+                <div key={sig.id} className="p-3 bg-zinc-900/50 rounded-lg border border-zinc-800/60 space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[10px] font-semibold text-blue-400">
+                      {sig.external_id || sig.id}
+                    </span>
+                    <span className="text-[10px] text-zinc-500 font-mono">
+                      {new Date(sig.detected_at).toLocaleDateString()}
+                    </span>
                   </div>
-                );
-              })
+
+                  <p className="text-zinc-300 text-[11px] leading-relaxed">
+                    {sig.payload?.text || sig.payload?.summary || JSON.stringify(sig.payload)}
+                  </p>
+
+                  <div className="pt-1 text-right">
+                    <button
+                      onClick={() => openEvidence(`ev_sig_${sig.external_id}`)}
+                      className="text-[10px] font-mono text-blue-400 hover:text-blue-300"
+                    >
+                      Inspect Evidence &rarr;
+                    </button>
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </div>

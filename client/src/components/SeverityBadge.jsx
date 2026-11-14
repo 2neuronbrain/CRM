@@ -4,17 +4,17 @@ import { AlertTriangle, AlertCircle, CheckCircle2, HelpCircle } from 'lucide-rea
 export function SeverityBadge({ severity = 'Unknown', size = 'sm' }) {
   const sev = (severity || 'unknown').toLowerCase();
 
-  let bg = 'bg-gray-100 text-gray-700 border-gray-200';
+  let bg = 'bg-zinc-800/80 text-zinc-400 border-zinc-700/50';
   let Icon = HelpCircle;
 
   if (sev === 'red' || sev === 'critical') {
-    bg = 'bg-rose-50 text-rose-700 border-rose-300';
+    bg = 'bg-red-500/10 text-red-400 border-red-500/20';
     Icon = AlertTriangle;
   } else if (sev === 'amber' || sev === 'high' || sev === 'developing') {
-    bg = 'bg-amber-50 text-amber-700 border-amber-300';
+    bg = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
     Icon = AlertCircle;
   } else if (sev === 'green' || sev === 'low' || sev === 'healthy') {
-    bg = 'bg-emerald-50 text-emerald-700 border-emerald-300';
+    bg = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
     Icon = CheckCircle2;
   }
 

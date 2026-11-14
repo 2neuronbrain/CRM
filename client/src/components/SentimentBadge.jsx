@@ -4,17 +4,17 @@ import { Smile, Meh, Frown, AlertCircle } from 'lucide-react';
 export function SentimentBadge({ status = 'Neutral', score = null, size = 'sm' }) {
   const s = (status || '').toLowerCase();
 
-  let bg = 'bg-slate-100 text-slate-700 border-slate-200';
+  let bg = 'bg-zinc-800/80 text-zinc-400 border-zinc-700/50';
   let Icon = Meh;
 
-  if (s.includes('support') || s.includes('positive') || s.includes('warm')) {
-    bg = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+  if (s.includes('support') || s.includes('positive') || s.includes('warm') || s.includes('healthy')) {
+    bg = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
     Icon = Smile;
-  } else if (s.includes('guard') || s.includes('frustrat') || s.includes('deteriorat') || s.includes('risk') || s.includes('freeze')) {
-    bg = 'bg-rose-50 text-rose-800 border-rose-200';
+  } else if (s.includes('guard') || s.includes('frustrat') || s.includes('deteriorat') || s.includes('risk') || s.includes('critical')) {
+    bg = 'bg-red-500/10 text-red-400 border-red-500/20';
     Icon = Frown;
-  } else if (s.includes('disengag') || s.includes('drift') || s.includes('warning')) {
-    bg = 'bg-amber-50 text-amber-800 border-amber-200';
+  } else if (s.includes('disengag') || s.includes('drift') || s.includes('warning') || s.includes('freeze') || s.includes('watch')) {
+    bg = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
     Icon = AlertCircle;
   }
 

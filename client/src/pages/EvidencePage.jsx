@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useEvidence } from '../context/EvidenceContext';
 import ConfidenceBadge from '../components/ConfidenceBadge';
-import { FileSearch, Search, Filter, FileText, Database, Calendar, Tag, ShieldCheck } from 'lucide-react';
+import AccountSelector from '../components/AccountSelector';
+import { Search, FileText, Loader2 } from 'lucide-react';
 
 export function EvidencePage() {
   const [evidenceList, setEvidenceList] = useState([]);
@@ -41,109 +42,104 @@ export function EvidencePage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Evidence Repository & Provenance</h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Searchable source repository of original unmanipulated paperwork, emails, contracts, and signals.
+          <h1 className="text-xl font-bold text-zinc-100 tracking-tight">Evidence Repository & Provenance</h1>
+          <p className="text-xs text-zinc-500 mt-0.5">
+            Source repository of original unmanipulated paperwork, emails, contracts, and signals.
           </p>
         </div>
 
-        <div className="bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl text-right">
-          <span className="text-[10px] text-emerald-700 uppercase font-semibold block">Total Provenance Records</span>
-          <span className="font-extrabold text-emerald-900 text-base">
-            {evidenceList.length} Archived Sources
+        <div className="bg-zinc-800/60 border border-zinc-700/50 px-3 py-1.5 rounded-xl text-right">
+          <span className="text-[10px] text-zinc-500 uppercase font-medium block font-mono">Archived Sources</span>
+          <span className="font-bold text-emerald-400 text-sm font-mono">
+            {evidenceList.length} Records
           </span>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
-        <div className="relative flex-1 min-w-[260px]">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+      <div className="bg-zinc-800/40 p-4 rounded-xl border border-zinc-800/60 shadow-sm flex flex-wrap items-center justify-between gap-3">
+        <div className="relative flex-1 min-w-[240px]">
+          <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-3" />
           <input
             type="text"
-            placeholder="Search keywords, contract terms, tickets, or source IDs..."
+            placeholder="Search raw transcripts, excerpts, filenames..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50"
+            className="w-full pl-9 pr-4 py-2 border border-zinc-700/60 rounded-lg text-xs bg-zinc-900/60 text-zinc-200 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
           />
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap text-xs">
-          <select
+        <div className="flex items-center gap-2.5 flex-wrap text-xs">
+          <AccountSelector
             value={accountFilter}
-            onChange={(e) => setAccountFilter(e.target.value)}
-            className="border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 text-slate-700 focus:outline-none"
-          >
-            <option value="ALL">All Accounts</option>
-            <option value="A">Eastern Counties (A)</option>
-            <option value="B">Aldermoor (B)</option>
-          </select>
+            onChange={setAccountFilter}
+            allLabel="All Accounts"
+          />
 
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 text-slate-700 focus:outline-none"
+            className="border border-zinc-700/60 rounded-lg px-2.5 py-2 bg-zinc-800/70 text-zinc-200 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500/50"
           >
             <option value="ALL">All Source Types</option>
             <option value="contract">Contracts</option>
-            <option value="call">Call Transcripts</option>
             <option value="email">Emails</option>
-            <option value="signal">Live Signals</option>
-            <option value="usage">Usage / Flights</option>
+            <option value="call">Call Notes</option>
+            <option value="signal">Signals</option>
+            <option value="fact">Facts</option>
           </select>
         </div>
       </div>
 
-      {/* Evidence Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {loading ? (
-          <div className="col-span-2 py-16 text-center text-slate-400 text-xs">
-            Loading evidence repository...
-          </div>
-        ) : filteredEvidence.length === 0 ? (
-          <div className="col-span-2 py-16 text-center text-slate-400 text-xs bg-white rounded-2xl border border-slate-200">
-            No evidence records matched your search parameters.
-          </div>
-        ) : (
-          filteredEvidence.map((ev) => (
+      {/* Evidence Grid */}
+      {loading ? (
+        <div className="py-24 text-center space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-400 mx-auto" />
+          <p className="text-xs text-zinc-500">Indexing evidence records...</p>
+        </div>
+      ) : filteredEvidence.length === 0 ? (
+        <div className="py-16 text-center bg-zinc-800/30 rounded-xl border border-zinc-800/60 text-zinc-500 text-xs">
+          No evidence records match your search filter.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          {filteredEvidence.map((ev) => (
             <div
               key={ev.id}
               onClick={() => openEvidence(ev)}
-              className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:border-emerald-400 hover:shadow-md transition cursor-pointer flex flex-col justify-between space-y-3"
+              className="p-4 rounded-xl border border-zinc-800/60 bg-zinc-800/40 hover:border-zinc-700/80 cursor-pointer transition-colors shadow-sm flex flex-col justify-between space-y-3 group"
             >
-              <div>
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-slate-900 text-white">
-                    {ev.source_id || ev.id}
-                  </span>
-                  <ConfidenceBadge confidence={ev.confidence || 'Verified'} size="xs" />
+              <div className="space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="font-mono text-[10px] font-semibold px-1.5 py-0.2 rounded bg-zinc-900 text-zinc-400 border border-zinc-700/60">
+                      {ev.account_id ? `Acc ${ev.account_id}` : 'Global'}
+                    </span>
+                    <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400">
+                      {ev.source_type || 'Record'}
+                    </span>
+                  </div>
+                  <ConfidenceBadge confidence={ev.confidence || 'Reported'} size="xs" />
                 </div>
 
-                <div className="bg-slate-900 text-emerald-300 font-mono text-[11px] p-3 rounded-lg line-clamp-3 leading-relaxed mb-3">
+                <div className="font-mono font-medium text-xs text-zinc-200 group-hover:text-blue-400 transition-colors flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-zinc-500 group-hover:text-blue-400" />
+                  <span className="truncate">{ev.source_id || ev.id}</span>
+                </div>
+
+                <p className="text-xs text-zinc-400 line-clamp-3 leading-relaxed font-sans bg-zinc-900/60 p-2.5 rounded-lg border border-zinc-800/60">
                   {ev.excerpt}
-                </div>
-
-                <div className="flex items-center gap-3 text-[11px] text-slate-500 flex-wrap">
-                  {ev.account_name && (
-                    <span>Account: <strong className="text-slate-700">{ev.account_name}</strong></span>
-                  )}
-                  <span className="capitalize">Type: <strong className="text-slate-700">{ev.source_type}</strong></span>
-                  {ev.source_date && (
-                    <span>Date: <strong className="text-slate-700">{ev.source_date}</strong></span>
-                  )}
-                </div>
+                </p>
               </div>
 
-              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                <span className="text-slate-400 font-mono text-[10px]">{ev.tool_name || 'MCP Tool'}</span>
-                <span className="text-emerald-600 font-semibold text-xs flex items-center gap-1">
-                  View Full Provenance &rarr;
-                </span>
+              <div className="pt-2 border-t border-zinc-800/60 flex items-center justify-between text-[10px] text-zinc-500 font-mono">
+                <span>{ev.tool_name || 'MCP Tool'}</span>
+                <span className="text-blue-400 group-hover:underline">Inspect Provenance &rarr;</span>
               </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

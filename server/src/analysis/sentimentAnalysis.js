@@ -87,7 +87,7 @@ export async function analyzeSentiment(accountId) {
         }
       ]
     };
-  } else {
+  } else if (accountId === 'B') {
     // Account B: Aldermoor Industrial Group
     return {
       accountId: 'B',
@@ -145,6 +145,95 @@ export async function analyzeSentiment(accountId) {
           evidenceId: 'ev_sig_aldermoor_usage_freeze'
         }
       ]
+    };
+  } else {
+    // Dynamic sentiment evaluation for custom / new accounts (e.g. NGP)
+    const breakdown = people.map(p => {
+      let score = 70;
+      const stanceLower = (p.stance || '').toLowerCase();
+      if (stanceLower.includes('support') || stanceLower.includes('champion') || stanceLower.includes('warm')) {
+        score = 85;
+      } else if (stanceLower.includes('guard')) {
+        score = 55;
+      } else if (stanceLower.includes('resist') || stanceLower.includes('block')) {
+        score = 35;
+      } else if (stanceLower.includes('depart')) {
+        score = 45;
+      }
+
+      const concerns = p.metadata?.concerns || p.concerns || '';
+      const quote = concerns ? String(concerns) : `Primary contact registered in ${p.organization || 'account'}.`;
+
+      return {
+        name: p.name,
+        role: p.role || p.title || 'Stakeholder',
+        sentiment: p.stance || 'Neutral',
+        sentimentScore: score,
+        keyQuote: quote,
+        evidenceId: p.evidence_list?.[0]?.id || null
+      };
+    });
+
+    const avgScore = breakdown.length > 0
+      ? Math.round(breakdown.reduce((sum, b) => sum + b.sentimentScore, 0) / breakdown.length)
+      : 75;
+
+    let overall = 'Healthy / Supportive';
+    let trendLabel = 'Stable (Positive)';
+    let trend = 'up';
+    if (avgScore < 50) {
+      overall = 'Critical / At-Risk';
+      trendLabel = '🔻 Attention Required';
+      trend = 'down';
+    } else if (avgScore < 70) {
+      overall = 'Guarded / Technical Review';
+      trendLabel = '⚠️ Compliance Diligence';
+      trend = 'neutral';
+    }
+
+    const drivers = [];
+    people.forEach(p => {
+      const stanceLower = (p.stance || '').toLowerCase();
+      const concerns = p.metadata?.concerns || p.concerns;
+      if (stanceLower.includes('support') || stanceLower.includes('champion')) {
+        drivers.push({
+          type: 'positive',
+          title: `Executive Sponsor Alignment: ${p.name}`,
+          detail: `${p.name} (${p.role}) actively sponsors autonomous deployment operations.`,
+          stakeholder: p.name,
+          evidenceId: p.evidence_list?.[0]?.id || null
+        });
+      }
+      if (concerns) {
+        drivers.push({
+          type: 'negative',
+          title: `Technical Gate: ${p.name}`,
+          detail: String(concerns),
+          stakeholder: p.name,
+          evidenceId: p.evidence_list?.[0]?.id || null
+        });
+      }
+    });
+
+    if (drivers.length === 0) {
+      drivers.push({
+        type: 'neutral',
+        title: 'Initial Deployment Onboarding',
+        detail: 'Standard commercial ramp-up and technical milestone validation underway.',
+        stakeholder: 'Account Lead',
+        evidenceId: null
+      });
+    }
+
+    return {
+      accountId,
+      overallSentiment: overall,
+      sentimentScore: avgScore,
+      trend,
+      trendLabel,
+      summary: `Stakeholder sentiment averages ${avgScore}/100 across ${breakdown.length} identified contacts. Operations proceed under active diligence.`,
+      drivers,
+      stakeholderBreakdown: breakdown
     };
   }
 }

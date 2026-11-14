@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useEvidence } from '../context/EvidenceContext';
 import ConfidenceBadge from '../components/ConfidenceBadge';
 import SeverityBadge from '../components/SeverityBadge';
+import SentimentBadge from '../components/SentimentBadge';
 import AccountTimelineSection from '../components/AccountTimelineSection';
+import AccountSelector from '../components/AccountSelector';
 import { 
   Building2, 
   DollarSign, 
@@ -13,21 +15,22 @@ import {
   EyeOff, 
   ShieldCheck, 
   FileText, 
-  ExternalLink,
   ChevronRight,
-  Clock,
-  ArrowRight,
-  HelpCircle,
+  Clock, 
+  ArrowRight, 
+  HelpCircle, 
   AlertTriangle,
-  UserCheck,
-  UserX
+  Loader2,
+  Calendar,
+  Briefcase
 } from 'lucide-react';
 
 export function AccountDetailPage() {
   const { accountId } = useParams();
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('all'); // all, bookValue, powerMap, actions, risks, gaps
+  const [activeTab, setActiveTab] = useState('all');
   const { openEvidence } = useEvidence();
 
   const fetchAccount = async () => {
@@ -38,177 +41,217 @@ export function AccountDetailPage() {
         setData(json);
       }
     } catch (err) {
-      console.error('Failed to load account:', err);
+      console.error('Failed to load account intelligence:', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    setLoading(true);
     fetchAccount();
-    const interval = setInterval(fetchAccount, 6000);
+    const interval = setInterval(fetchAccount, 8000);
     return () => clearInterval(interval);
   }, [accountId]);
 
   if (loading && !data) {
     return (
-      <div className="py-24 text-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-        <p className="text-sm text-slate-500 font-medium">Retrieving account intelligence file...</p>
+      <div className="py-24 text-center space-y-3">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-400 mx-auto" />
+        <p className="text-xs text-zinc-500 font-medium">Retrieving account intelligence file...</p>
       </div>
     );
   }
 
   if (!data || !data.account) {
     return (
-      <div className="py-24 text-center">
-        <p className="text-slate-600">Account not found or not yet ingested.</p>
-        <Link to="/" className="mt-4 inline-block text-emerald-600 font-semibold text-xs">
-          &larr; Back to Dashboard
+      <div className="py-24 text-center space-y-4">
+        <Building2 className="w-12 h-12 text-zinc-600 mx-auto" />
+        <h2 className="text-base font-semibold text-zinc-200">Account Not Found</h2>
+        <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+          The requested account ID does not exist or has not yet been ingested into the CRM database.
+        </p>
+        <Link 
+          to="/accounts" 
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium rounded-lg transition-colors border border-zinc-700/60"
+        >
+          &larr; Return to Accounts Directory
         </Link>
       </div>
     );
   }
 
-  const { account, fiveQuestions } = data;
-  const { 
-    question1_bookValue: q1, 
-    question2_powerMap: q2, 
-    question3_nextActions: q3, 
-    question4_riskRadar: q4, 
-    question5_blindSpots: q5 
-  } = fiveQuestions;
+  const { account, sentiment = {}, summary = {}, fiveQuestions = {} } = data;
+  const q1 = fiveQuestions.question1_bookValue || { deals: [], totalVerifiedValue: 0, totalReportedValue: 0 };
+  const q2 = fiveQuestions.question2_powerMap || { people: [], totalPeople: 0 };
+  const q3 = fiveQuestions.question3_nextActions || { top3Actions: [], allActions: [] };
+  const q4 = fiveQuestions.question4_riskRadar || { risks: [], overallStatus: 'Healthy' };
+  const q5 = fiveQuestions.question5_blindSpots || { gaps: [], totalGaps: 0 };
+
+  const tabs = [
+    { id: 'all', label: 'All 5 Questions' },
+    { id: 'bookValue', label: '1. Book Value', icon: DollarSign, count: q1.deals?.length },
+    { id: 'powerMap', label: '2. Power Map', icon: Users, count: q2.people?.length },
+    { id: 'actions', label: '3. Next Actions', icon: Target, count: q3.top3Actions?.length },
+    { id: 'risks', label: '4. Risk Radar', icon: AlertOctagon, count: q4.risks?.length },
+    { id: 'gaps', label: '5. Blind Spots', icon: EyeOff, count: q5.gaps?.length },
+    { id: 'timeline', label: '6. Timeline', icon: Clock },
+  ];
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Account Header */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="font-mono font-bold text-xs bg-slate-900 text-white px-2.5 py-0.5 rounded">
-                Account {account.id}
+      {/* Account Header Card */}
+      <div className="bg-zinc-800/40 rounded-xl border border-zinc-800/60 p-6 space-y-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                Acc {account.id}
               </span>
-              <span className="text-xs text-slate-500">
-                Last synchronized: {account.last_synced_at ? new Date(account.last_synced_at).toLocaleTimeString() : 'Live'}
+              <span className="text-xs text-zinc-500 font-medium">
+                {account.industry || 'Enterprise Customer'}
               </span>
+              <span className="text-zinc-600">•</span>
+              <SentimentBadge 
+                status={sentiment.overallSentiment} 
+                score={sentiment.sentimentScore} 
+                size="xs" 
+              />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+
+            <h1 className="text-2xl font-bold tracking-tight text-zinc-100">
               {account.name}
             </h1>
-            <p className="text-sm text-slate-600 mt-1 max-w-3xl leading-relaxed">
-              {account.description}
+            <p className="text-xs text-zinc-400 max-w-3xl leading-relaxed">
+              {account.description || summary.oneLineVerdict || 'No description provided.'}
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-right">
-              <span className="text-[10px] text-slate-500 uppercase font-semibold block">Verified Book</span>
-              <div className="flex items-center justify-end gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span className="text-2xl font-black text-emerald-700">
+          {/* Quick Metrics Ribbon & Switcher */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="flex items-center gap-2">
+              <AccountSelector
+                value={account.id}
+                onChange={(newId) => {
+                  if (newId !== 'ALL' && newId !== account.id) {
+                    navigate(`/accounts/${newId}`);
+                  }
+                }}
+                includeAll={false}
+              />
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="bg-zinc-900/60 border border-zinc-800/50 p-3 rounded-lg text-right min-w-[130px]">
+                <span className="text-[10px] text-zinc-500 uppercase font-medium block font-mono">Verified Book</span>
+                <span className="text-lg font-bold text-emerald-400 font-mono">
                   ${(q1.totalVerifiedValue || 0).toLocaleString()}
                 </span>
+                <span className="text-[10px] text-zinc-500 block font-mono">
+                  + ${(q1.totalReportedValue || 0).toLocaleString()} pipeline
+                </span>
               </div>
-              <span className="text-[11px] text-slate-500 block mt-0.5">
-                + ${(q1.totalReportedValue || 0).toLocaleString()} reported
-              </span>
             </div>
           </div>
         </div>
 
         {/* Tab Filters */}
-        <div className="flex items-center gap-2 mt-6 border-t border-slate-100 pt-4 overflow-x-auto text-xs">
-          {[
-            { id: 'all', label: 'All 5 Questions' },
-            { id: 'bookValue', label: '1. Book Value', icon: DollarSign },
-            { id: 'powerMap', label: '2. Power Map', icon: Users },
-            { id: 'actions', label: '3. Next Actions', icon: Target },
-            { id: 'risks', label: '4. Risk Radar', icon: AlertOctagon },
-            { id: 'gaps', label: '5. Blind Spots', icon: EyeOff },
-            { id: 'timeline', label: '6. Interaction Timeline', icon: Clock },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-3 py-1.5 rounded-lg font-medium transition whitespace-nowrap flex items-center gap-1.5 ${
-                activeTab === tab.id
-                  ? 'bg-slate-900 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {tab.icon && <tab.icon className="w-3.5 h-3.5" />}
-              <span>{tab.label}</span>
-            </button>
-          ))}
+        <div className="flex items-center gap-1.5 border-t border-zinc-800/50 pt-4 overflow-x-auto text-xs scrollbar-none">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                  isActive
+                    ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30 font-semibold'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 border border-transparent'
+                }`}
+              >
+                {Icon && <Icon className="w-3.5 h-3.5 opacity-70" />}
+                <span>{tab.label}</span>
+                {typeof tab.count === 'number' && (
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                    isActive ? 'bg-blue-500/20 text-blue-300' : 'bg-zinc-800 text-zinc-500'
+                  }`}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* QUESTION 1: Book Value */}
       {(activeTab === 'all' || activeTab === 'bookValue') && (
-        <section className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        <section className="bg-zinc-800/40 rounded-xl border border-zinc-800/60 p-5 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800/50">
             <div>
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">
+                <div className="w-5 h-5 rounded bg-emerald-500/15 text-emerald-400 flex items-center justify-center font-bold text-xs">
                   1
                 </div>
-                <h2 className="text-lg font-bold text-slate-900">What is the book worth?</h2>
+                <h2 className="text-sm font-semibold text-zinc-100">What is the book worth?</h2>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-[11px] text-zinc-500 mt-0.5">
                 Constituent deals breakdown separating verified contracts from unverified claims.
               </p>
             </div>
 
-            <div className="flex items-center gap-2 text-xs">
-              <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded font-semibold">
+            <div className="flex items-center gap-2 text-xs font-mono">
+              <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[11px] font-medium">
                 Verified: ${(q1.totalVerifiedValue || 0).toLocaleString()}
               </span>
-              <span className="bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded font-semibold">
-                Reported: ${(q1.totalReportedValue || 0).toLocaleString()}
+              <span className="bg-zinc-800 text-zinc-300 border border-zinc-700/60 px-2 py-0.5 rounded text-[11px] font-medium">
+                Pipeline: ${(q1.totalReportedValue || 0).toLocaleString()}
               </span>
             </div>
           </div>
 
           {/* Deals Table */}
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-lg border border-zinc-800/50">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase text-[10px] font-semibold">
+              <thead className="bg-zinc-900/60 text-zinc-400 uppercase text-[10px] font-medium border-b border-zinc-800/60">
                 <tr>
                   <th className="py-2.5 px-3">Opportunity / Deal</th>
                   <th className="py-2.5 px-3">Stage / Status</th>
                   <th className="py-2.5 px-3">Value</th>
                   <th className="py-2.5 px-3">Verification</th>
-                  <th className="py-2.5 px-3">Source Evidence</th>
+                  <th className="py-2.5 px-3">Evidence</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
-                {q1.deals.length === 0 ? (
+              <tbody className="divide-y divide-zinc-800/40 text-zinc-300">
+                {!q1.deals || q1.deals.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="py-6 text-center text-slate-400">
-                      No deals recorded yet for this account.
+                    <td colSpan="5" className="py-8 text-center text-zinc-500 text-xs">
+                      No commercial deals recorded yet for this account.
                     </td>
                   </tr>
                 ) : (
                   q1.deals.map((deal) => (
-                    <tr key={deal.id} className="hover:bg-slate-50/60 transition">
-                      <td className="py-3 px-3">
-                        <span className="font-semibold text-slate-900 block">{deal.title}</span>
-                        <span className="text-[11px] text-slate-500 truncate max-w-sm block">
+                    <tr key={deal.id} className="hover:bg-zinc-800/30 transition-colors">
+                      <td className="py-3 px-3 max-w-sm">
+                        <strong className="text-zinc-100 block font-medium text-xs leading-snug">
+                          {deal.title}
+                        </strong>
+                        <span className="text-[11px] text-zinc-500 truncate block mt-0.5">
                           {deal.description}
                         </span>
                       </td>
-                      <td className="py-3 px-3">
-                        <span className="inline-block px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium text-[11px]">
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <span className="px-2 py-0.5 rounded bg-zinc-800/70 text-zinc-300 font-medium text-[11px] border border-zinc-700/50">
                           {deal.status}
                         </span>
                       </td>
-                      <td className="py-3 px-3">
-                        <span className="font-mono font-bold text-sm text-slate-900">
-                          {deal.amount > 0 ? `$${deal.amount.toLocaleString()}` : '—'}
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <span className="font-mono font-semibold text-xs text-zinc-100">
+                          {parseFloat(deal.amount || 0) > 0 ? `$${parseFloat(deal.amount).toLocaleString()}` : '—'}
                         </span>
                       </td>
-                      <td className="py-3 px-3">
+                      <td className="py-3 px-3 whitespace-nowrap">
                         <ConfidenceBadge confidence={deal.verification_status || 'Unknown'} size="xs" />
                       </td>
                       <td className="py-3 px-3">
@@ -218,16 +261,15 @@ export function AccountDetailPage() {
                               <button
                                 key={ev.id}
                                 onClick={() => openEvidence(ev)}
-                                className="inline-flex items-center gap-1 font-mono text-[10px] bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 hover:border-emerald-300 px-1.5 py-0.5 rounded transition text-slate-700"
-                                title="Click to inspect unedited source provenance"
+                                className="inline-flex items-center gap-1 font-mono text-[10px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-zinc-100 border border-zinc-700/60 px-1.5 py-0.5 rounded transition-colors"
                               >
-                                <FileText className="w-3 h-3 text-emerald-600" />
+                                <FileText className="w-3 h-3 text-blue-400" />
                                 {ev.source_id || ev.id}
                               </button>
                             ))}
                           </div>
                         ) : (
-                          <span className="text-slate-400 text-[10px]">No linked record</span>
+                          <span className="text-zinc-500 text-[10px]">No linked record</span>
                         )}
                       </td>
                     </tr>
@@ -241,251 +283,266 @@ export function AccountDetailPage() {
 
       {/* QUESTION 2: Power Map */}
       {(activeTab === 'all' || activeTab === 'powerMap') && (
-        <section className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        <section className="bg-zinc-800/40 rounded-xl border border-zinc-800/60 p-5 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-zinc-800/50">
             <div>
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
+                <div className="w-5 h-5 rounded bg-blue-500/15 text-blue-400 flex items-center justify-center font-bold text-xs">
                   2
                 </div>
-                <h2 className="text-lg font-bold text-slate-900">Who holds the power?</h2>
+                <h2 className="text-sm font-semibold text-zinc-100">Who holds the power?</h2>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Account stakeholder intelligence: decision-makers, champions, payers, blockers, and departures.
+              <p className="text-[11px] text-zinc-500 mt-0.5">
+                Account stakeholder power map: sponsors, gatekeepers, champions, blockers, and concerns.
               </p>
             </div>
-            <span className="text-xs text-slate-500 font-medium">
-              {q2.totalPeople} identified stakeholders
+            <span className="text-xs text-zinc-400 font-medium">
+              {q2.totalPeople || q2.people?.length || 0} Stakeholders
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {q2.people.map((person) => {
-              const isDeparting = (person.stance || '').toLowerCase().includes('depart');
-              return (
-                <div 
-                  key={person.id} 
-                  className={`p-4 rounded-xl border transition flex flex-col justify-between ${
-                    isDeparting 
-                      ? 'bg-rose-50/60 border-rose-200' 
-                      : 'bg-slate-50 border-slate-200'
-                  }`}
-                >
-                  <div>
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div>
-                        <h4 className="font-bold text-slate-900 text-sm leading-tight">
-                          {person.name}
-                        </h4>
-                        <span className="text-xs text-slate-600 block mt-0.5">
-                          {person.role}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {!q2.people || q2.people.length === 0 ? (
+              <div className="col-span-full py-8 text-center text-zinc-500 text-xs">
+                No stakeholders identified yet for this account.
+              </div>
+            ) : (
+              q2.people.map((person) => {
+                const isDeparting = (person.stance || '').toLowerCase().includes('depart');
+                const stanceLower = (person.stance || '').toLowerCase();
+                let stanceBadge = 'bg-zinc-800 text-zinc-400 border-zinc-700/60';
+                if (isDeparting) {
+                  stanceBadge = 'bg-red-500/15 text-red-400 border-red-500/30';
+                } else if (stanceLower.includes('support') || stanceLower.includes('warm') || stanceLower.includes('champion')) {
+                  stanceBadge = 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
+                } else if (stanceLower.includes('guard')) {
+                  stanceBadge = 'bg-amber-500/15 text-amber-400 border-amber-500/30';
+                }
+
+                return (
+                  <div 
+                    key={person.id} 
+                    className={`p-4 rounded-xl border transition-colors flex flex-col justify-between space-y-3 ${
+                      isDeparting 
+                        ? 'bg-red-950/20 border-red-800/40' 
+                        : 'bg-zinc-900/50 border-zinc-800/60 hover:border-zinc-700/70'
+                    }`}
+                  >
+                    <div className="space-y-2.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h4 className="font-semibold text-zinc-100 text-xs leading-snug">
+                            {person.name}
+                          </h4>
+                          <span className="text-[11px] text-zinc-400 block mt-0.5">
+                            {person.role || person.title}
+                          </span>
+                        </div>
+                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded border ${stanceBadge}`}>
+                          {person.stance}
                         </span>
                       </div>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border uppercase ${
-                        isDeparting ? 'bg-rose-100 text-rose-800 border-rose-300 animate-pulse' :
-                        person.stance === 'Supportive' || person.stance === 'Warm' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
-                        person.stance === 'Guarded' ? 'bg-amber-100 text-amber-800 border-amber-300' :
-                        person.stance === 'Resistant' ? 'bg-rose-100 text-rose-800 border-rose-300' :
-                        'bg-slate-100 text-slate-700 border-slate-300'
-                      }`}>
-                        {person.stance}
-                      </span>
+
+                      {isDeparting && (
+                        <div className="p-2 bg-red-500/10 rounded-lg border border-red-500/20 text-red-300 text-[11px] leading-relaxed">
+                          ⚠️ <strong>Departing Soon:</strong> Handover required immediately. No successor named.
+                        </div>
+                      )}
+
+                      {person.concerns && (
+                        <div className="text-xs space-y-1">
+                          <span className="text-zinc-500 block text-[10px] uppercase font-semibold">Stated Stance / Concerns:</span>
+                          <p className="bg-zinc-800/50 p-2.5 rounded-lg border border-zinc-700/40 text-[11px] text-zinc-300 leading-relaxed">
+                            {person.concerns}
+                          </p>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Departure warning banner if applicable */}
-                    {isDeparting && (
-                      <div className="p-2 bg-rose-100/80 rounded border border-rose-200 text-rose-900 text-[11px] font-medium mb-3">
-                        ⚠️ <strong>Departing in January:</strong> Handover required immediately. No successor named.
-                      </div>
-                    )}
-
-                    {/* Stated Concerns */}
-                    {person.concerns && (
-                      <div className="text-xs text-slate-700 mb-2">
-                        <strong className="text-slate-900 block text-[10px] uppercase">Concerns:</strong>
-                        <p className="bg-white/80 p-2 rounded border border-slate-200/60 text-[11px] leading-relaxed">
-                          {person.concerns}
-                        </p>
-                      </div>
-                    )}
+                    <div className="border-t border-zinc-800/60 pt-2 flex items-center justify-between text-[11px]">
+                      <span className="text-zinc-500">Source:</span>
+                      {person.evidence && person.evidence.length > 0 ? (
+                        <button
+                          onClick={() => openEvidence(person.evidence[0])}
+                          className="text-blue-400 hover:text-blue-300 font-mono text-[10px] flex items-center gap-1 transition-colors"
+                        >
+                          <FileText className="w-3 h-3" />
+                          {person.evidence[0].source_id || person.evidence[0].id}
+                        </button>
+                      ) : (
+                        <span className="text-zinc-500 font-mono text-[10px]">MCP Account Roster</span>
+                      )}
+                    </div>
                   </div>
-
-                  {/* Evidence tag */}
-                  <div className="border-t border-slate-200/60 pt-2 flex items-center justify-between text-[11px]">
-                    <span className="text-slate-500">Source:</span>
-                    {person.evidence && person.evidence.length > 0 ? (
-                      <button
-                        onClick={() => openEvidence(person.evidence[0])}
-                        className="text-emerald-700 hover:text-emerald-800 font-mono text-[10px] underline flex items-center gap-1"
-                      >
-                        <FileText className="w-3 h-3" />
-                        {person.evidence[0].source_id || person.evidence[0].id}
-                      </button>
-                    ) : (
-                      <span className="text-slate-400 font-mono text-[10px]">MCP Account Roster</span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </section>
       )}
 
-      {/* QUESTION 3: Next Best Actions */}
+      {/* QUESTION 3: Next Actions */}
       {(activeTab === 'all' || activeTab === 'actions') && (
-        <section className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        <section className="bg-zinc-800/40 rounded-xl border border-zinc-800/60 p-5 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-zinc-800/50">
             <div>
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-xs">
+                <div className="w-5 h-5 rounded bg-violet-500/15 text-violet-400 flex items-center justify-center font-bold text-xs">
                   3
                 </div>
-                <h2 className="text-lg font-bold text-slate-900">What should we do first?</h2>
+                <h2 className="text-sm font-semibold text-zinc-100">What should we do first?</h2>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Deterministic prioritization algorithm: Deal Value + Likelihood of Success + Deadline Urgency.
+              <p className="text-[11px] text-zinc-500 mt-0.5">
+                Deterministic explainable ranking: Deal Impact + Likelihood + Deadline Urgency.
               </p>
             </div>
-            <span className="text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-1 rounded">
-              Top 3 Moves Ranked
+            <span className="text-xs font-medium text-violet-400 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded">
+              {q3.top3Actions?.length || 0} Priority Moves
             </span>
           </div>
 
-          <div className="space-y-4">
-            {q3.top3Actions.map((action, idx) => (
-              <div 
-                key={action.id} 
-                className="p-5 rounded-xl border border-slate-200 bg-gradient-to-r from-slate-50 to-white shadow-sm flex flex-col md:flex-row md:items-start justify-between gap-4"
-              >
-                <div className="flex items-start gap-4 flex-1">
-                  <div className="w-8 h-8 rounded-full bg-slate-900 text-white font-black text-sm flex items-center justify-center shrink-0 shadow">
-                    #{idx + 1}
-                  </div>
-                  <div className="space-y-1.5 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-bold text-slate-900 text-base leading-snug">
-                        {action.title}
-                      </h3>
-                      {action.deadline && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded">
-                          <Clock className="w-3 h-3" /> Due: {action.deadline}
-                        </span>
+          <div className="space-y-3">
+            {!q3.top3Actions || q3.top3Actions.length === 0 ? (
+              <div className="py-8 text-center text-zinc-500 text-xs">
+                No priority actions assigned for this account yet.
+              </div>
+            ) : (
+              q3.top3Actions.map((action, idx) => (
+                <div 
+                  key={action.id} 
+                  className="p-4 rounded-xl border border-zinc-800/60 bg-zinc-900/50 flex flex-col md:flex-row md:items-start justify-between gap-4 hover:border-zinc-700/70 transition-colors"
+                >
+                  <div className="flex items-start gap-3.5 flex-1">
+                    <div className="w-6 h-6 rounded-lg bg-zinc-800 text-zinc-300 font-mono font-bold text-xs flex items-center justify-center shrink-0 border border-zinc-700/60 mt-0.5">
+                      #{idx + 1}
+                    </div>
+                    <div className="space-y-1.5 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold text-zinc-100 text-xs leading-snug">
+                          {action.title}
+                        </h3>
+                        {action.deadline && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded font-mono">
+                            <Clock className="w-3 h-3" /> Due: {action.deadline}
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-zinc-400 leading-relaxed">
+                        {action.description}
+                      </p>
+
+                      {action.deterministicReasoning && (
+                        <div className="p-2.5 bg-violet-500/10 border border-violet-500/20 rounded-lg text-violet-300 text-[11px] leading-relaxed">
+                          <strong>Deterministic Basis:</strong> {action.deterministicReasoning}
+                        </div>
+                      )}
+
+                      {action.expected_outcome && (
+                        <p className="text-[11px] text-zinc-500">
+                          <strong className="text-zinc-400">Target Outcome:</strong> {action.expected_outcome}
+                        </p>
                       )}
                     </div>
+                  </div>
 
-                    <p className="text-xs text-slate-700 leading-relaxed">
-                      {action.description}
-                    </p>
-
-                    <div className="p-3 bg-purple-50/70 border border-purple-100 rounded-lg text-purple-900 text-xs leading-relaxed">
-                      <strong>Deterministic Ranking Basis:</strong> {action.deterministicReasoning}
+                  <div className="md:w-52 bg-zinc-800/60 p-3 rounded-lg border border-zinc-700/50 shrink-0 text-xs space-y-1.5">
+                    <div>
+                      <span className="text-zinc-500 block text-[10px] uppercase font-medium">Owner</span>
+                      <strong className="text-zinc-200">{action.owner || 'Unassigned'}</strong>
                     </div>
-
-                    {action.expected_outcome && (
-                      <p className="text-[11px] text-slate-600">
-                        <strong className="text-slate-800">Target Outcome:</strong> {action.expected_outcome}
-                      </p>
+                    <div>
+                      <span className="text-zinc-500 block text-[10px] uppercase font-medium">Deal Impact</span>
+                      <span className="text-zinc-400 truncate block">{action.deal_title || 'Account Strategy'}</span>
+                    </div>
+                    {action.evidence_source_id && (
+                      <div className="pt-1 border-t border-zinc-700/50">
+                        <button
+                          onClick={() => openEvidence(action.evidence_id || action.evidence_source_id)}
+                          className="text-blue-400 hover:text-blue-300 font-mono text-[10px] flex items-center gap-1 transition-colors"
+                        >
+                          <FileText className="w-3 h-3" />
+                          Evidence: {action.evidence_source_id}
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
-
-                <div className="md:w-56 bg-slate-100/70 p-3 rounded-lg border border-slate-200 shrink-0 text-xs space-y-2">
-                  <div>
-                    <span className="text-slate-500 block text-[10px] uppercase font-semibold">Assigned Owner</span>
-                    <strong className="text-slate-800">{action.owner || 'Unassigned'}</strong>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px] uppercase font-semibold">Deal Impact</span>
-                    <span className="text-slate-700">{action.deal_title || 'Account Strategy'}</span>
-                  </div>
-                  {action.evidence_source_id && (
-                    <div className="pt-1 border-t border-slate-200">
-                      <button
-                        onClick={() => openEvidence(action.evidence_id || action.evidence_source_id)}
-                        className="text-emerald-700 hover:text-emerald-800 font-mono text-[10px] underline flex items-center gap-1"
-                      >
-                        <FileText className="w-3 h-3" />
-                        Evidence: {action.evidence_source_id}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </section>
       )}
 
       {/* QUESTION 4: Risk Radar */}
       {(activeTab === 'all' || activeTab === 'risks') && (
-        <section className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        <section className="bg-zinc-800/40 rounded-xl border border-zinc-800/60 p-5 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-zinc-800/50">
             <div>
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-rose-100 text-rose-700 flex items-center justify-center font-bold text-xs">
+                <div className="w-5 h-5 rounded bg-red-500/15 text-red-400 flex items-center justify-center font-bold text-xs">
                   4
                 </div>
-                <h2 className="text-lg font-bold text-slate-900">What is about to go wrong?</h2>
+                <h2 className="text-sm font-semibold text-zinc-100">What is about to go wrong?</h2>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Active risk radar: approaching deadlines, departure events, unanswered customer requests, usage drop-offs.
+              <p className="text-[11px] text-zinc-500 mt-0.5">
+                Active risk radar: approaching deadlines, departure voids, unanswered tickets, and hardware drop-offs.
               </p>
             </div>
             <SeverityBadge severity={q4.overallStatus} />
           </div>
 
-          <div className="space-y-4">
-            {q4.risks.length === 0 ? (
-              <div className="py-8 text-center text-slate-400 text-xs">
-                No active risks recorded for this account.
+          <div className="space-y-3">
+            {!q4.risks || q4.risks.length === 0 ? (
+              <div className="py-8 text-center text-zinc-500 text-xs">
+                No active threats or operational risks recorded for this account.
               </div>
             ) : (
               q4.risks.map((risk) => (
                 <div 
                   key={risk.id} 
-                  className="p-5 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3"
+                  className="p-4 rounded-xl border border-zinc-800/60 bg-zinc-900/50 space-y-3 hover:border-zinc-700/70 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <SeverityBadge severity={risk.severity} />
-                      <h3 className="font-bold text-slate-900 text-sm">{risk.title}</h3>
+                      <SeverityBadge severity={risk.severity} size="xs" />
+                      <h3 className="font-semibold text-zinc-100 text-xs">{risk.title}</h3>
                     </div>
                     {risk.trigger_date && (
-                      <span className="text-[11px] font-mono text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
+                      <span className="text-[10px] font-mono text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded border border-zinc-700/60">
                         Trigger: {risk.trigger_date}
                       </span>
                     )}
                   </div>
 
-                  <p className="text-xs text-slate-700 leading-relaxed">
+                  <p className="text-xs text-zinc-400 leading-relaxed">
                     {risk.description}
                   </p>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                    <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-950">
-                      <strong className="block text-[11px] uppercase text-rose-800 mb-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
+                    <div className="p-2.5 bg-red-500/10 border border-red-500/20 rounded-lg text-red-300">
+                      <strong className="block text-[10px] uppercase text-red-400 mb-0.5">
                         Consequence If Unresolved:
                       </strong>
                       <p className="text-[11px] leading-relaxed">{risk.consequence}</p>
                     </div>
 
-                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-950">
-                      <strong className="block text-[11px] uppercase text-emerald-800 mb-1">
+                    <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-300">
+                      <strong className="block text-[10px] uppercase text-emerald-400 mb-0.5">
                         Recommended Mitigation:
                       </strong>
                       <p className="text-[11px] leading-relaxed">{risk.mitigation}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200">
-                    <span className="text-slate-500">
-                      Responsible Owner: <strong className="text-slate-800">{risk.responsible_owner}</strong>
+                  <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-zinc-800/60">
+                    <span className="text-zinc-500">
+                      Owner: <strong className="text-zinc-300">{risk.responsible_owner}</strong>
                     </span>
                     {risk.evidence_source_id && (
                       <button
                         onClick={() => openEvidence(risk.evidence_id || risk.evidence_source_id)}
-                        className="text-emerald-700 hover:text-emerald-800 font-mono text-[10px] underline flex items-center gap-1"
+                        className="text-blue-400 hover:text-blue-300 font-mono text-[10px] flex items-center gap-1 transition-colors"
                       >
                         <FileText className="w-3 h-3" />
                         Evidence: {risk.evidence_source_id}
@@ -499,65 +556,65 @@ export function AccountDetailPage() {
         </section>
       )}
 
-      {/* QUESTION 5: Blind-Spot Finder */}
+      {/* QUESTION 5: Blind Spots */}
       {(activeTab === 'all' || activeTab === 'gaps') && (
-        <section className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        <section className="bg-zinc-800/40 rounded-xl border border-zinc-800/60 p-5 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-zinc-800/50">
             <div>
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs">
+                <div className="w-5 h-5 rounded bg-amber-500/15 text-amber-400 flex items-center justify-center font-bold text-xs">
                   5
                 </div>
-                <h2 className="text-lg font-bold text-slate-900">What do we still not know?</h2>
+                <h2 className="text-sm font-semibold text-zinc-100">What do we still not know?</h2>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Strategic unknowns and recommended discovery questions to resolve before Monday decisions.
+              <p className="text-[11px] text-zinc-500 mt-0.5">
+                Strategic unknowns and recommended discovery questions before decisions lock.
               </p>
             </div>
-            <span className="text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded">
-              {q5.totalGaps} Intelligence Gaps
+            <span className="text-xs font-medium text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded">
+              {q5.totalGaps || q5.gaps?.length || 0} Intelligence Gaps
             </span>
           </div>
 
-          <div className="space-y-4">
-            {q5.gaps.length === 0 ? (
-              <div className="py-8 text-center text-slate-400 text-xs">
-                No blind spots currently unaddressed.
+          <div className="space-y-3">
+            {!q5.gaps || q5.gaps.length === 0 ? (
+              <div className="py-8 text-center text-zinc-500 text-xs">
+                No blind spots currently unaddressed for this account.
               </div>
             ) : (
               q5.gaps.map((gap) => (
-                <div key={gap.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
+                <div key={gap.id} className="p-4 rounded-xl border border-zinc-800/60 bg-zinc-900/50 space-y-2.5 hover:border-zinc-700/70 transition-colors">
                   <div className="flex items-start justify-between gap-3">
-                    <h3 className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-                      <HelpCircle className="w-4 h-4 text-amber-600" />
+                    <h3 className="font-semibold text-zinc-100 text-xs flex items-center gap-1.5">
+                      <HelpCircle className="w-4 h-4 text-amber-400 shrink-0" />
                       {gap.missing_information}
                     </h3>
-                    <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">
+                    <span className="text-[10px] font-medium uppercase px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
                       {gap.priority} Priority
                     </span>
                   </div>
 
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    <strong className="text-slate-800">Why It Matters:</strong> {gap.importance}
+                  <p className="text-xs text-zinc-400 leading-relaxed">
+                    <strong className="text-zinc-300">Why It Matters:</strong> {gap.importance}
                   </p>
 
-                  <div className="p-3 bg-white border border-slate-200 rounded-lg text-xs">
-                    <strong className="text-slate-900 block text-[11px] uppercase mb-1">
+                  <div className="p-3 bg-zinc-850 bg-zinc-900/80 border border-zinc-800/80 rounded-lg text-xs">
+                    <strong className="text-zinc-400 block text-[10px] uppercase mb-1">
                       Recommended Question to Ask:
                     </strong>
-                    <p className="text-emerald-900 font-medium italic">
+                    <p className="text-blue-300 font-medium italic">
                       "{gap.recommended_question}"
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs pt-1">
-                    <span className="text-slate-500">
-                      Suggested Lead: <strong className="text-slate-700">{gap.suggested_owner}</strong>
+                  <div className="flex items-center justify-between text-[11px] pt-1">
+                    <span className="text-zinc-500">
+                      Suggested Lead: <strong className="text-zinc-300">{gap.suggested_owner}</strong>
                     </span>
                     {gap.evidence_source_id && (
                       <button
                         onClick={() => openEvidence(gap.evidence_id || gap.evidence_source_id)}
-                        className="text-emerald-700 hover:text-emerald-800 font-mono text-[10px] underline flex items-center gap-1"
+                        className="text-blue-400 hover:text-blue-300 font-mono text-[10px] flex items-center gap-1 transition-colors"
                       >
                         <FileText className="w-3 h-3" />
                         Evidence: {gap.evidence_source_id}

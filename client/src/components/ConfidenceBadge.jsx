@@ -4,24 +4,24 @@ import { ShieldCheck, ShieldAlert, AlertCircle, HelpCircle, FileCheck } from 'lu
 export function ConfidenceBadge({ confidence = 'Unknown', size = 'sm' }) {
   const conf = confidence ? confidence.toLowerCase() : 'unknown';
 
-  let bg = 'bg-gray-100 text-gray-700 border-gray-200';
+  let bg = 'bg-zinc-800/80 text-zinc-400 border-zinc-700/50';
   let Icon = HelpCircle;
 
   if (conf.includes('verified')) {
-    bg = 'bg-emerald-50 text-emerald-700 border-emerald-300';
+    bg = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
     Icon = ShieldCheck;
   } else if (conf.includes('corroborated')) {
-    bg = 'bg-blue-50 text-blue-700 border-blue-300';
+    bg = 'bg-blue-500/10 text-blue-400 border-blue-500/20';
     Icon = FileCheck;
   } else if (conf.includes('reported')) {
-    bg = 'bg-amber-50 text-amber-700 border-amber-300';
+    bg = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
     Icon = ShieldAlert;
   } else if (conf.includes('inferred')) {
-    bg = 'bg-purple-50 text-purple-700 border-purple-300';
+    bg = 'bg-violet-500/10 text-violet-400 border-violet-500/20';
     Icon = AlertCircle;
   }
 
-  const px = size === 'xs' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs';
+  const px = size === 'xs' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-xs';
 
   return (
     <span className={`inline-flex items-center gap-1 rounded font-medium border ${bg} ${px}`}>

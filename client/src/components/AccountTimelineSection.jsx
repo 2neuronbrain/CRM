@@ -13,7 +13,8 @@ import {
   ChevronDown,
   ChevronUp,
   Search,
-  RefreshCw
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 
 export function AccountTimelineSection({ accountId }) {
@@ -53,58 +54,66 @@ export function AccountTimelineSection({ accountId }) {
 
   const getChannelIcon = (channel) => {
     switch (channel) {
-      case 'email': return <Mail className="w-3.5 h-3.5 text-sky-400" />;
-      case 'call': return <Phone className="w-3.5 h-3.5 text-emerald-400" />;
+      case 'email': return <Mail className="w-3.5 h-3.5 text-violet-400" />;
+      case 'call': return <Phone className="w-3.5 h-3.5 text-blue-400" />;
       case 'ticket': return <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />;
-      case 'telemetry': return <Radio className="w-3.5 h-3.5 text-rose-400" />;
-      case 'note': return <FileText className="w-3.5 h-3.5 text-indigo-400" />;
-      default: return <Clock className="w-3.5 h-3.5 text-slate-400" />;
+      case 'telemetry': return <Radio className="w-3.5 h-3.5 text-red-400" />;
+      case 'note': return <FileText className="w-3.5 h-3.5 text-zinc-400" />;
+      case 'contract': return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />;
+      default: return <Clock className="w-3.5 h-3.5 text-zinc-400" />;
     }
   };
 
   return (
-    <section className="bg-slate-900/95 rounded-2xl border border-slate-800 p-6 shadow-sm space-y-4">
+    <section className="bg-zinc-800/40 rounded-xl border border-zinc-800/60 p-5 space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800/50">
         <div>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-indigo-500/20 text-indigo-300 flex items-center justify-center font-bold text-xs border border-indigo-500/30">
-              <Clock className="w-3.5 h-3.5" />
+            <div className="w-5 h-5 rounded bg-blue-500/15 text-blue-400 flex items-center justify-center font-bold text-xs">
+              6
             </div>
-            <h2 className="text-base font-bold text-white">Customer Interaction Timeline</h2>
+            <h2 className="text-sm font-semibold text-zinc-100">Interaction & Communication Timeline</h2>
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Chronological log of emails, call transcripts, support tickets, and telemetry alerts for this account.
+          <p className="text-[11px] text-zinc-500 mt-0.5">
+            Chronological audit trail for this account across calls, emails, support tickets, and telemetry.
           </p>
         </div>
 
-        {/* Channel Pills */}
-        <div className="flex items-center gap-1 overflow-x-auto text-xs">
-          {['all', 'call', 'email', 'ticket', 'telemetry', 'note'].map((ch) => (
-            <button
-              key={ch}
-              onClick={() => setChannelFilter(ch)}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition capitalize border ${
-                channelFilter === ch
-                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-semibold'
-                  : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
-              }`}
-            >
-              {ch === 'all' ? 'All' : ch}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          {/* Channel selector */}
+          <select
+            value={channelFilter}
+            onChange={(e) => setChannelFilter(e.target.value)}
+            className="border border-zinc-700/60 rounded-lg px-2.5 py-1 bg-zinc-800/70 text-zinc-200 text-xs focus:outline-none"
+          >
+            <option value="all">All Channels</option>
+            <option value="call">Calls</option>
+            <option value="email">Emails</option>
+            <option value="ticket">Tickets</option>
+            <option value="telemetry">Telemetry</option>
+            <option value="note">Notes</option>
+          </select>
+
+          <button
+            onClick={fetchTimeline}
+            className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 border border-zinc-700/60 transition-colors"
+            title="Refresh"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </div>
 
-      {/* Timeline items */}
+      {/* Timeline Stream */}
       {loading ? (
-        <div className="py-12 text-center">
-          <RefreshCw className="w-5 h-5 animate-spin text-emerald-400 mx-auto mb-2" />
-          <p className="text-xs text-slate-400">Loading interactions...</p>
+        <div className="py-12 text-center space-y-2">
+          <Loader2 className="w-6 h-6 animate-spin text-blue-400 mx-auto" />
+          <p className="text-xs text-zinc-500">Loading interactions...</p>
         </div>
       ) : timeline.length === 0 ? (
-        <div className="py-8 text-center text-xs text-slate-500 italic">
-          No interactions logged matching the active filter.
+        <div className="py-8 text-center text-zinc-500 text-xs">
+          No interaction records found for this account.
         </div>
       ) : (
         <div className="space-y-3">
@@ -112,65 +121,62 @@ export function AccountTimelineSection({ accountId }) {
             const isExp = expanded[item.id];
             return (
               <div 
-                key={item.id}
-                className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-slate-700/80 transition space-y-2"
+                key={item.id} 
+                className="p-4 rounded-xl border border-zinc-800/60 bg-zinc-900/50 space-y-2 hover:border-zinc-700/70 transition-colors"
               >
-                <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
-                  <div className="flex items-center gap-2">
-                    {getChannelIcon(item.channel)}
-                    <span className="font-mono font-semibold text-slate-200 text-[11px]">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="w-6 h-6 rounded-lg bg-zinc-800 flex items-center justify-center shrink-0 border border-zinc-700/60">
+                      {getChannelIcon(item.channel)}
+                    </span>
+                    <span className="font-mono text-xs font-semibold text-zinc-300">
                       {item.date}
                     </span>
-                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 capitalize">
-                      {item.channelLabel || item.channel}
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700/50 capitalize">
+                      {item.channel}
                     </span>
+                    {item.participants && item.participants.length > 0 && (
+                      <span className="text-[11px] text-zinc-500">
+                        ({item.participants.join(', ')})
+                      </span>
+                    )}
                   </div>
 
                   {item.evidenceId && (
                     <button
                       onClick={() => openEvidence(item.evidenceId)}
-                      className="text-[10px] font-mono text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30 flex items-center gap-1 transition"
+                      className="text-xs font-mono text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
                     >
                       <Paperclip className="w-3 h-3" />
                       <span>{item.sourceId ? item.sourceId.split('/').pop() : 'Evidence'}</span>
-                      <ExternalLink className="w-2.5 h-2.5" />
+                      <ExternalLink className="w-3 h-3 text-blue-400" />
                     </button>
                   )}
                 </div>
 
-                <h4 className="text-xs font-semibold text-white leading-snug">
+                <h4 className="text-xs font-semibold text-zinc-100">
                   {item.title}
                 </h4>
 
-                {item.participants && item.participants.length > 0 && (
-                  <div className="text-[10px] text-slate-400 flex items-center gap-1 flex-wrap">
-                    <span className="text-slate-500">Participants:</span>
-                    {item.participants.map((p, i) => (
-                      <span key={i} className="font-mono bg-slate-900 px-1.5 py-0.2 rounded text-slate-300 border border-slate-800">
-                        {p}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                <p className="text-xs text-slate-300 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/60 leading-relaxed">
+                <p className="text-xs text-zinc-400 leading-relaxed">
                   {item.summary}
                 </p>
 
                 {isExp && item.fullText && (
-                  <pre className="text-[11px] font-mono text-slate-300 bg-slate-900 p-2.5 rounded border border-slate-800 whitespace-pre-wrap leading-relaxed">
-                    {item.fullText}
-                  </pre>
+                  <div className="pt-2 border-t border-zinc-800/60">
+                    <pre className="text-[11px] font-mono text-zinc-300 bg-zinc-900 p-2.5 rounded-lg border border-zinc-800 whitespace-pre-wrap leading-relaxed">
+                      {item.fullText}
+                    </pre>
+                  </div>
                 )}
 
                 {item.fullText && (
-                  <div className="flex justify-end pt-1">
+                  <div className="pt-1 text-right">
                     <button
                       onClick={() => toggleExpand(item.id)}
-                      className="text-[11px] text-slate-400 hover:text-white flex items-center gap-1 transition"
+                      className="text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors"
                     >
-                      <span>{isExp ? 'Collapse' : 'Full Content'}</span>
-                      {isExp ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                      {isExp ? 'Collapse' : 'View Full Content →'}
                     </button>
                   </div>
                 )}

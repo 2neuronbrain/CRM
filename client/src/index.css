@@ -2,25 +2,56 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  background-color: #f8fafc;
-  color: #0f172a;
-  -webkit-font-smoothing: antialiased;
+:root {
+  /* Refined dark palette - neutral zinc base with soft accent tones */
+  --bg-primary: #18181b;     /* zinc-900 */
+  --bg-secondary: #1f1f23;   /* slightly lighter surface */
+  --bg-elevated: #27272a;    /* zinc-800 */
+  --bg-card: #202024;        /* card surface */
+  --border-subtle: #2e2e33;  /* soft border */
+  --border-medium: #3a3a40;
+  --text-primary: #f4f4f5;   /* zinc-100 */
+  --text-secondary: #a1a1aa; /* zinc-400 */
+  --text-muted: #71717a;     /* zinc-500 */
+  --accent-primary: #60a5fa; /* blue-400 - primary accent */
+  --accent-success: #34d399; /* emerald-400 */
+  --accent-warning: #fbbf24; /* amber-400 */
+  --accent-danger: #f87171;  /* red-400 */
 }
 
-/* Custom scrollbar */
+body {
+  margin: 0;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Refined scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
+  background: #3f3f46;
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #52525b;
+}
+
+/* Smooth focus transitions */
+*:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+
+/* Selection */
+::selection {
+  background: rgba(96, 165, 250, 0.25);
+  color: inherit;
 }

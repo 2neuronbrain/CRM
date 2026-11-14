@@ -72,7 +72,7 @@ export async function getAccountSummary(accountId) {
     };
   } else {
     // Dynamic synthesis for custom created accounts
-    const verifiedVal = deals.totalVerifiedBookValue || 0;
+    const verifiedVal = deals.totalVerifiedValue || deals.totalVerifiedBookValue || 0;
     const reportedVal = deals.totalReportedValue || 0;
     const currency = (deals.deals && deals.deals[0]?.currency) || 'GBP';
     const symbol = currency === 'EUR' ? '€' : currency === 'USD' ? '$' : '£';

@@ -1,151 +1,162 @@
 import React, { useState, useEffect } from 'react';
 import { useEvidence } from '../context/EvidenceContext';
-import { Users, Shield, UserCheck, UserX, AlertTriangle, FileText, ChevronRight } from 'lucide-react';
+import AccountSelector from '../components/AccountSelector';
+import { Users, FileText, Loader2, AlertTriangle } from 'lucide-react';
 
 export function PowerMapPage() {
-  const [data, setData] = useState({ A: null, B: null });
+  const [people, setPeople] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedAccount, setSelectedAccount] = useState('ALL');
   const { openEvidence } = useEvidence();
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/accounts/A/stakeholders').then(r => r.json()),
-      fetch('/api/accounts/B/stakeholders').then(r => r.json())
-    ]).then(([resA, resB]) => {
-      setData({ A: resA, B: resB });
-    }).catch(console.error)
+    fetch('/api/accounts')
+      .then(res => res.json())
+      .then(async (accs) => {
+        if (!Array.isArray(accs)) return;
+        const all = [];
+        await Promise.all(
+          accs.map(async (acc) => {
+            const accId = acc.accountId || acc.id;
+            try {
+              const res = await fetch(`/api/accounts/${accId}/stakeholders`);
+              if (res.ok) {
+                const sData = await res.json();
+                if (sData.people && Array.isArray(sData.people)) {
+                  sData.people.forEach(p => {
+                    all.push({
+                      ...p,
+                      account_id: accId,
+                      account_name: acc.name
+                    });
+                  });
+                }
+              }
+            } catch (err) {
+              console.error(`Failed to load stakeholders for ${accId}:`, err);
+            }
+          })
+        );
+        setPeople(all);
+      })
+      .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
-  const allPeople = [
-    ...(data.A?.people || []).map(p => ({ ...p, account_id: 'A', account_name: 'Eastern Counties Police Alliance' })),
-    ...(data.B?.people || []).map(p => ({ ...p, account_id: 'B', account_name: 'Aldermoor Industrial Group' }))
-  ];
-
-  const filteredPeople = allPeople.filter(p => selectedAccount === 'ALL' || p.account_id === selectedAccount);
+  const filteredPeople = people.filter(p => selectedAccount === 'ALL' || p.account_id === selectedAccount);
 
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Stakeholder Power Map</h1>
-          <p className="text-xs text-slate-500 mt-1">
+          <h1 className="text-xl font-bold text-zinc-100 tracking-tight">Stakeholder Power Map</h1>
+          <p className="text-xs text-zinc-500 mt-0.5">
             Who makes decisions, controls budgets, champions adoption, or poses a blocking risk.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 text-xs">
-          {['ALL', 'A', 'B'].map((acc) => (
-            <button
-              key={acc}
-              onClick={() => setSelectedAccount(acc)}
-              className={`px-3 py-1.5 rounded-lg font-medium transition ${
-                selectedAccount === acc
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              {acc === 'ALL' ? 'All Accounts' : acc === 'A' ? 'Eastern Counties' : 'Aldermoor'}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <AccountSelector
+            value={selectedAccount}
+            onChange={setSelectedAccount}
+            allLabel="All Accounts"
+          />
         </div>
       </div>
 
       {/* Stakeholders Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {filteredPeople.map((person) => {
-          const isDeparting = (person.stance || '').toLowerCase().includes('depart');
-          return (
-            <div
-              key={person.id}
-              className={`bg-white rounded-2xl border p-5 shadow-sm flex flex-col justify-between transition ${
-                isDeparting ? 'border-rose-300 ring-2 ring-rose-200/50' : 'border-slate-200'
-              }`}
-            >
-              <div>
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <div>
-                    <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
-                      Account {person.account_id}
+      {loading ? (
+        <div className="py-24 text-center space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-400 mx-auto" />
+          <p className="text-xs text-zinc-500">Mapping account power relationships...</p>
+        </div>
+      ) : filteredPeople.length === 0 ? (
+        <div className="py-16 text-center bg-zinc-800/30 rounded-xl border border-zinc-800/60 text-zinc-500 text-xs">
+          No stakeholders match the selected account filter.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredPeople.map((person) => {
+            const isDeparting = (person.stance || '').toLowerCase().includes('depart');
+            const stanceLower = (person.stance || '').toLowerCase();
+            let stanceBadge = 'bg-zinc-800 text-zinc-400 border-zinc-700/60';
+            if (isDeparting) {
+              stanceBadge = 'bg-red-500/15 text-red-400 border-red-500/30';
+            } else if (stanceLower.includes('support') || stanceLower.includes('warm') || stanceLower.includes('champion')) {
+              stanceBadge = 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
+            } else if (stanceLower.includes('guard')) {
+              stanceBadge = 'bg-amber-500/15 text-amber-400 border-amber-500/30';
+            }
+
+            return (
+              <div 
+                key={person.id} 
+                className={`p-4 rounded-xl border flex flex-col justify-between space-y-3 transition-colors ${
+                  isDeparting 
+                    ? 'bg-red-950/20 border-red-800/40' 
+                    : 'bg-zinc-800/40 border-zinc-800/60 hover:border-zinc-700/80'
+                }`}
+              >
+                <div className="space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="font-mono text-[10px] font-semibold px-1.5 py-0.2 rounded bg-zinc-900 text-zinc-400 border border-zinc-700/60">
+                          {person.account_id}
+                        </span>
+                        <span className="text-[11px] text-zinc-500 font-medium truncate max-w-[150px]">
+                          {person.account_name}
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-zinc-100 text-xs leading-tight">
+                        {person.name}
+                      </h3>
+                      <span className="text-[11px] text-zinc-400 block mt-0.5">
+                        {person.role || person.title}
+                      </span>
+                    </div>
+
+                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded border uppercase font-mono ${stanceBadge}`}>
+                      {person.stance}
                     </span>
-                    <h3 className="font-bold text-slate-900 text-base mt-1 leading-snug">
-                      {person.name}
-                    </h3>
-                    <span className="text-xs text-slate-500 block">{person.role}</span>
                   </div>
 
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border uppercase tracking-wider ${
-                    isDeparting ? 'bg-rose-100 text-rose-800 border-rose-300 animate-pulse' :
-                    person.stance === 'Supportive' || person.stance === 'Warm' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
-                    person.stance === 'Guarded' ? 'bg-amber-100 text-amber-800 border-amber-300' :
-                    person.stance === 'Resistant' ? 'bg-rose-100 text-rose-800 border-rose-300' :
-                    'bg-slate-100 text-slate-700 border-slate-300'
-                  }`}>
-                    {person.stance}
-                  </span>
+                  {isDeparting && (
+                    <div className="p-2 bg-red-500/10 rounded-lg border border-red-500/20 text-red-300 text-[11px] leading-relaxed">
+                      ⚠️ <strong>Departing Soon:</strong> Handover required immediately. No successor named.
+                    </div>
+                  )}
+
+                  {person.concerns && (
+                    <div className="text-xs space-y-1">
+                      <strong className="text-zinc-500 block text-[10px] uppercase font-semibold">Stated Concerns:</strong>
+                      <p className="bg-zinc-900/60 p-2.5 rounded-lg border border-zinc-800/80 text-[11px] text-zinc-300 leading-relaxed">
+                        {person.concerns}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
-                {/* Stance details / departure notice */}
-                {isDeparting && (
-                  <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-rose-950 text-xs mb-3 space-y-1">
-                    <strong className="flex items-center gap-1 text-rose-800 font-bold">
-                      <AlertTriangle className="w-3.5 h-3.5" /> High Risk Departure
-                    </strong>
-                    <p className="text-[11px] leading-relaxed">
-                      Rhys Calder is leaving the alliance drone programme in January. Handover required immediately; no successor named yet.
-                    </p>
-                  </div>
-                )}
-
-                {/* Concerns or notes */}
-                {person.concerns && (
-                  <div className="text-xs text-slate-700 mb-3 bg-slate-50 p-2.5 rounded-lg border border-slate-200/60">
-                    <strong className="block text-[10px] uppercase text-slate-900 mb-1">
-                      Identified Concerns:
-                    </strong>
-                    <p className="text-[11px] leading-relaxed italic text-slate-700">
-                      "{person.concerns}"
-                    </p>
-                  </div>
-                )}
-
-                {person.dealConnections && person.dealConnections.length > 0 && (
-                  <div className="text-xs text-slate-600 mb-3">
-                    <span className="text-[10px] uppercase font-semibold text-slate-500 block mb-1">
-                      Deal Relationship:
-                    </span>
-                    <div className="space-y-1">
-                      {person.dealConnections.map((d, i) => (
-                        <div key={i} className="text-[11px] bg-slate-100 px-2 py-0.5 rounded text-slate-800 truncate">
-                          {d.deal_title || 'Deal'} • <strong>{d.relationship_role}</strong>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <div className="border-t border-zinc-800/60 pt-2 flex items-center justify-between text-[11px]">
+                  <span className="text-zinc-500">Source:</span>
+                  {person.evidence && person.evidence.length > 0 ? (
+                    <button
+                      onClick={() => openEvidence(person.evidence[0])}
+                      className="text-blue-400 hover:text-blue-300 font-mono text-[10px] flex items-center gap-1 transition-colors"
+                    >
+                      <FileText className="w-3 h-3" />
+                      {person.evidence[0].source_id || person.evidence[0].id}
+                    </button>
+                  ) : (
+                    <span className="text-zinc-500 font-mono text-[10px]">MCP Account Roster</span>
+                  )}
+                </div>
               </div>
-
-              {/* Provenance footer */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                <span className="text-[11px] text-slate-500">Source Evidence:</span>
-                {person.evidence && person.evidence.length > 0 ? (
-                  <button
-                    onClick={() => openEvidence(person.evidence[0])}
-                    className="text-emerald-700 hover:text-emerald-800 font-mono text-[10px] underline flex items-center gap-1"
-                  >
-                    <FileText className="w-3 h-3" />
-                    {person.evidence[0].source_id || person.evidence[0].id}
-                  </button>
-                ) : (
-                  <span className="text-slate-400 font-mono text-[10px]">MCP Account Roster</span>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

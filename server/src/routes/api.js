@@ -122,6 +122,22 @@ router.post('/accounts', async (req, res) => {
       [uuidv4(), accountId, `Account Onboarded: ${name.trim()}`, `Created new CRM account with initial tracking.`]
     );
 
+    // Initial baseline onboarding operational task
+    await db.query(
+      `INSERT INTO actions (id, account_id, title, description, owner, priority, deadline, status, reasoning, expected_outcome, action_type)
+       VALUES ($1, $2, $3, $4, 'Account Director', 1, (NOW() + INTERVAL '7 days')::date::text, 'pending', 'Standard initial enterprise onboarding milestone', 'Establish initial technical survey and kickoff cadence', 'operational')
+       ON CONFLICT (id) DO NOTHING`,
+      [`act_${accountId.toLowerCase()}_kickoff`, accountId, `Schedule Technical Discovery & Site Survey with ${name.trim()}`, `Coordinate initial technical survey, dock location inspection, and network coverage validation.`]
+    );
+
+    // Initial intelligence gap
+    await db.query(
+      `INSERT INTO intelligence_gaps (id, account_id, missing_information, importance, suggested_owner, recommended_question, priority, status)
+       VALUES ($1, $2, $3, $4, 'Solutions Architect', $5, 'Medium', 'open')
+       ON CONFLICT (id) DO NOTHING`,
+      [`gap_${accountId.toLowerCase()}_specs`, accountId, `Dock Site Power & Network Connectivity Specifications`, `Critical for confirming power failover and cellular/ethernet uplink coverage before deploying hardware.`, `What are the primary power feed and backhaul network connectivity available at the proposed dock installation locations?`]
+    );
+
     const summary = await getAccountSummary(accountId);
     sseManager.broadcast('account_created', summary);
     res.status(201).json(summary);
@@ -658,7 +674,9 @@ router.post('/sync/initial', async (req, res) => {
 router.post('/sync/check', async (req, res) => {
   try {
     const queueRes = await mcpScheduler.enqueue('get_signals', {}, 3);
-    res.json({ message: 'Live signal check enqueued', queueId: queueRes.id });
+    // Also enqueue get_my_accounts dynamically so user sync refreshes accounts and paperwork immediately
+    await mcpScheduler.enqueue('get_my_accounts', {}, 4);
+    res.json({ message: 'Live signal and account check enqueued', queueId: queueRes.id });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

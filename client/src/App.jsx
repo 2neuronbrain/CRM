@@ -30,21 +30,17 @@ export function AppContent() {
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
 
   return (
-    <div className="flex h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans antialiased">
-      {/* Sleek Vertical Sidebar Navigation */}
+    <div className="flex h-screen w-screen bg-zinc-900 text-zinc-100 overflow-hidden font-sans antialiased">
       <Sidebar
         onOpenAddAccount={() => setIsAddAccountOpen(true)}
         onOpenCreateTask={() => setIsCreateTaskOpen(true)}
       />
 
-      {/* Main Content Area */}
-      <div className="flex-1 min-w-0 flex flex-col h-screen overflow-hidden bg-slate-950">
-        {/* Top Sync & Provenance Bar */}
+      <div className="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
         <SyncStatusBar />
 
-        {/* Scrollable Viewport */}
-        <main className="flex-1 overflow-y-auto px-4 sm:px-8 py-6">
-          <div className="max-w-7xl mx-auto">
+        <main className="flex-1 overflow-y-auto px-6 sm:px-8 py-6">
+          <div className="max-w-[1400px] mx-auto">
             <Routes>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/accounts" element={<AccountsPage />} />
@@ -66,7 +62,6 @@ export function AppContent() {
         </main>
       </div>
 
-      {/* Global Modals & Drawers */}
       <EvidenceDrawer />
       <AddAccountModal
         isOpen={isAddAccountOpen}

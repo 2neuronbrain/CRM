@@ -1,5 +1,6 @@
 import db from '../database/db.js';
 import sseManager from '../services/sse.js';
+import mcpScheduler from '../mcp/scheduler.js';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -9,7 +10,7 @@ export async function ingestAccounts(data) {
   if (!data || !data.accounts) return;
 
   for (const acc of data.accounts) {
-    const accountId = acc.id; // 'A' or 'B'
+    const accountId = acc.id; // 'A', 'B', or any new dynamic account ID
     const name = acc.name;
     const description = acc.official_story || '';
 
@@ -25,6 +26,25 @@ export async function ingestAccounts(data) {
            last_synced_at = NOW()`,
       [accountId, name, description, JSON.stringify(acc)]
     );
+
+    // Dynamically check if paperwork is already enqueued or fetched for this account
+    // If not, automatically enqueue get_all_paperwork for this account without manual intervention
+    try {
+      const paperworkCheck = await db.query(
+        `SELECT id FROM mcp_queue 
+         WHERE tool_name = 'get_all_paperwork' 
+           AND arguments->>'account' = $1 
+           AND status IN ('queued', 'processing', 'completed')
+         LIMIT 1`,
+        [accountId]
+      );
+      if (paperworkCheck.rows.length === 0) {
+        console.log(`[Ingestion] Discovered account ${accountId} from MCP without paperwork queued. Dynamically scheduling get_all_paperwork...`);
+        await mcpScheduler.enqueue('get_all_paperwork', { account: accountId }, 5);
+      }
+    } catch (schedErr) {
+      console.warn(`[Ingestion] Note: could not check/enqueue paperwork for ${accountId}:`, schedErr.message);
+    }
 
     // Ingest Stakeholders
     if (acc.stakeholders && Array.isArray(acc.stakeholders)) {

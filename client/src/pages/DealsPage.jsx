@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useEvidence } from '../context/EvidenceContext';
 import ConfidenceBadge from '../components/ConfidenceBadge';
-import { Briefcase, Search, Filter, ShieldCheck, DollarSign, FileText, ArrowUpDown } from 'lucide-react';
+import AccountSelector from '../components/AccountSelector';
+import { Briefcase, Search, FileText, ChevronDown } from 'lucide-react';
 
 export function DealsPage() {
   const [deals, setDeals] = useState([]);
@@ -40,22 +41,22 @@ export function DealsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Deal & Commercial Intelligence</h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Traceable commercial contracts, proposals, and pipeline opportunities.
+          <h1 className="text-xl font-bold text-zinc-100 tracking-tight">Deal & Commercial Intelligence</h1>
+          <p className="text-xs text-zinc-500 mt-1">
+            Traceable commercial contracts, proposals, and pipeline opportunities across all accounts.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl text-right">
-            <span className="text-[10px] text-emerald-700 uppercase font-semibold block">Verified Book Total</span>
-            <span className="font-extrabold text-emerald-900 text-base">
+          <div className="bg-zinc-800/60 border border-zinc-700/50 px-3.5 py-2 rounded-xl text-right min-w-[140px]">
+            <span className="text-[10px] text-zinc-500 uppercase font-medium block font-mono">Verified Total</span>
+            <span className="font-bold text-emerald-400 text-lg font-mono">
               ${verifiedTotal.toLocaleString()}
             </span>
           </div>
-          <div className="bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl text-right">
-            <span className="text-[10px] text-amber-700 uppercase font-semibold block">Reported Unverified</span>
-            <span className="font-extrabold text-amber-900 text-base">
+          <div className="bg-zinc-800/60 border border-zinc-700/50 px-3.5 py-2 rounded-xl text-right min-w-[140px]">
+            <span className="text-[10px] text-zinc-500 uppercase font-medium block font-mono">Reported Pipeline</span>
+            <span className="font-bold text-zinc-200 text-lg font-mono">
               ${reportedTotal.toLocaleString()}
             </span>
           </div>
@@ -63,33 +64,31 @@ export function DealsPage() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-zinc-800/40 p-4 rounded-xl border border-zinc-800/60 shadow-sm flex flex-wrap items-center justify-between gap-3">
         <div className="relative flex-1 min-w-[240px]">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-3" />
           <input
             type="text"
-            placeholder="Search deals, descriptions, or force..."
+            placeholder="Search deals, descriptions, or accounts..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50"
+            className="w-full pl-9 pr-4 py-2 border border-zinc-700/60 rounded-lg text-xs bg-zinc-900/60 text-zinc-200 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
           />
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap text-xs">
-          <select
+        <div className="flex items-center gap-2.5 flex-wrap text-xs">
+          {/* Elegant Account Filter */}
+          <AccountSelector
             value={accountFilter}
-            onChange={(e) => setAccountFilter(e.target.value)}
-            className="border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 text-slate-700 focus:outline-none"
-          >
-            <option value="ALL">All Accounts</option>
-            <option value="A">Account A (Eastern Counties)</option>
-            <option value="B">Account B (Aldermoor)</option>
-          </select>
+            onChange={setAccountFilter}
+            allLabel="All Accounts"
+          />
 
+          {/* Status Filter */}
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 text-slate-700 focus:outline-none"
+            className="border border-zinc-700/60 rounded-lg px-3 py-2 bg-zinc-800/70 text-zinc-200 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500/50"
           >
             <option value="ALL">All Verifications</option>
             <option value="Verified">Verified Only</option>
@@ -100,10 +99,10 @@ export function DealsPage() {
       </div>
 
       {/* Deals Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-zinc-800/40 rounded-xl border border-zinc-800/60 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase text-[10px] font-semibold">
+            <thead className="bg-zinc-900/60 text-zinc-400 uppercase text-[10px] font-medium border-b border-zinc-800/60">
               <tr>
                 <th className="py-3 px-4">Deal Title & Description</th>
                 <th className="py-3 px-4">Account</th>
@@ -113,40 +112,42 @@ export function DealsPage() {
                 <th className="py-3 px-4">Supporting Evidence</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-zinc-800/40 text-zinc-300">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="py-12 text-center text-slate-400">
+                  <td colSpan="6" className="py-12 text-center text-zinc-500">
                     Loading commercial opportunities...
                   </td>
                 </tr>
               ) : filteredDeals.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="py-12 text-center text-slate-400">
+                  <td colSpan="6" className="py-12 text-center text-zinc-500">
                     No deals match your filter criteria.
                   </td>
                 </tr>
               ) : (
                 filteredDeals.map((deal) => (
-                  <tr key={deal.id} className="hover:bg-slate-50/70 transition">
+                  <tr key={deal.id} className="hover:bg-zinc-800/30 transition-colors">
                     <td className="py-3.5 px-4 max-w-sm">
-                      <strong className="text-slate-900 block font-semibold text-sm">
+                      <strong className="text-zinc-100 block font-medium text-xs leading-snug">
                         {deal.title}
                       </strong>
-                      <span className="text-[11px] text-slate-500 line-clamp-1">
+                      <span className="text-[11px] text-zinc-500 line-clamp-1 mt-0.5">
                         {deal.description}
                       </span>
                     </td>
                     <td className="py-3.5 px-4 whitespace-nowrap">
-                      <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
-                        Acc {deal.account_id}
-                      </span>
-                      <span className="block text-[11px] text-slate-600 mt-0.5">
-                        {deal.account_name}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-[10px] font-semibold px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-400 border border-zinc-700/60">
+                          {deal.account_id}
+                        </span>
+                        <span className="text-[11px] text-zinc-300 font-medium">
+                          {deal.account_name}
+                        </span>
+                      </div>
                     </td>
                     <td className="py-3.5 px-4 whitespace-nowrap">
-                      <span className="font-mono font-bold text-sm text-slate-900">
+                      <span className="font-mono font-semibold text-xs text-zinc-100">
                         {parseFloat(deal.amount || 0) > 0 ? `$${parseFloat(deal.amount).toLocaleString()}` : '—'}
                       </span>
                     </td>
@@ -154,7 +155,7 @@ export function DealsPage() {
                       <ConfidenceBadge confidence={deal.verification_status || 'Unknown'} size="xs" />
                     </td>
                     <td className="py-3.5 px-4 whitespace-nowrap">
-                      <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[11px] font-medium">
+                      <span className="px-2 py-0.5 rounded bg-zinc-800/80 text-zinc-300 text-[11px] font-medium border border-zinc-700/50">
                         {deal.status || 'Active'}
                       </span>
                     </td>
@@ -165,16 +166,16 @@ export function DealsPage() {
                             <button
                               key={ev.id}
                               onClick={() => openEvidence(ev)}
-                              className="inline-flex items-center gap-1 font-mono text-[10px] bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 hover:border-emerald-300 px-2 py-0.5 rounded transition text-slate-700"
+                              className="inline-flex items-center gap-1 font-mono text-[10px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-zinc-100 border border-zinc-700/60 px-2 py-0.5 rounded transition-colors"
                               title="Click to view traceable provenance"
                             >
-                              <FileText className="w-3 h-3 text-emerald-600" />
+                              <FileText className="w-3 h-3 text-blue-400" />
                               {ev.source_id || ev.id}
                             </button>
                           ))}
                         </div>
                       ) : (
-                        <span className="text-slate-400 text-[10px]">No linked record</span>
+                        <span className="text-zinc-500 text-[10px]">No linked record</span>
                       )}
                     </td>
                   </tr>

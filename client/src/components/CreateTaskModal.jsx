@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckSquare, Calendar, User, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { X, CheckSquare, Calendar, User, AlertCircle, Loader2 } from 'lucide-react';
 
-export function CreateTaskModal({ isOpen, onClose, onTaskCreated, initialAccountId }) {
+export function CreateTaskModal({ isOpen, onClose, onTaskCreated, defaultAccountId }) {
   const [accounts, setAccounts] = useState([]);
   const [formData, setFormData] = useState({
     title: '',
-    account_id: initialAccountId || 'A',
+    account_id: defaultAccountId || 'A',
     owner: 'Customer Success Lead',
     priority: 1,
     deadline: '',
-    action_type: 'escalation',
+    action_type: 'operational',
     reasoning: '',
     expected_outcome: '',
     task_notes: ''
@@ -25,14 +25,16 @@ export function CreateTaskModal({ isOpen, onClose, onTaskCreated, initialAccount
         .then((data) => {
           if (Array.isArray(data)) {
             setAccounts(data);
-            if (!initialAccountId && data.length > 0) {
+            if (!defaultAccountId && data.length > 0) {
               setFormData((prev) => ({ ...prev, account_id: data[0].accountId || data[0].id }));
+            } else if (defaultAccountId) {
+              setFormData((prev) => ({ ...prev, account_id: defaultAccountId }));
             }
           }
         })
         .catch(() => {});
     }
-  }, [isOpen, initialAccountId]);
+  }, [isOpen, defaultAccountId]);
 
   if (!isOpen) return null;
 
@@ -60,14 +62,21 @@ export function CreateTaskModal({ isOpen, onClose, onTaskCreated, initialAccount
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...formData,
-          priority: parseInt(formData.priority, 10)
+          title: formData.title.trim(),
+          account_id: formData.account_id,
+          owner: formData.owner.trim(),
+          priority: parseInt(formData.priority, 10),
+          deadline: formData.deadline.trim() || undefined,
+          action_type: formData.action_type,
+          reasoning: formData.reasoning.trim() || undefined,
+          expected_outcome: formData.expected_outcome.trim() || undefined,
+          task_notes: formData.task_notes.trim() || undefined
         })
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Failed to create task' }));
-        throw new Error(err.error || 'Server error creating task');
+        const errData = await res.json().catch(() => ({ error: 'Failed to create task' }));
+        throw new Error(errData.error || 'Server error creating task');
       }
 
       const created = await res.json();
@@ -81,60 +90,48 @@ export function CreateTaskModal({ isOpen, onClose, onTaskCreated, initialAccount
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
       <div 
-        className="bg-slate-900 border border-slate-800 rounded-xl max-w-lg w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="bg-zinc-900 border border-zinc-800 rounded-xl max-w-lg w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/80">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800/80 bg-zinc-900">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+            <div className="w-8 h-8 rounded-lg bg-violet-500/15 text-violet-400 flex items-center justify-center border border-violet-500/30">
               <CheckSquare className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-white">Create Operational Task</h2>
-              <p className="text-xs text-slate-400">Configure actionable priorities and team commitments</p>
+              <h2 className="text-sm font-semibold text-zinc-100">Create Priority Task</h2>
+              <p className="text-[11px] text-zinc-500">Configure actionable deliverable with assigned owner</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-1 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Form */}
+        {/* Form Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4 text-xs">
           {error && (
-            <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg text-rose-300 flex items-center gap-2">
+            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-300 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
-          <div className="space-y-1">
-            <label className="text-slate-300 font-medium">Task Action / Title *</label>
-            <input
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              placeholder="e.g. Schedule emergency training slot before Dec 5 event"
-              required
-              className="w-full bg-slate-950 border border-slate-800 rounded-md px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 text-xs"
-            />
-          </div>
-
+          {/* Account & Priority Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-slate-300 font-medium">Account *</label>
+              <label className="text-zinc-300 font-medium text-[11px]">Associated Account *</label>
               <select
                 name="account_id"
                 value={formData.account_id}
                 onChange={handleChange}
-                className="w-full bg-slate-950 border border-slate-800 rounded-md px-3 py-2 text-white focus:outline-none focus:border-indigo-500 text-xs"
+                className="w-full bg-zinc-950/60 border border-zinc-700/60 rounded-lg px-3 py-2 text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500/50 text-xs"
               >
                 {accounts.map((acc) => (
                   <option key={acc.accountId || acc.id} value={acc.accountId || acc.id}>
@@ -145,119 +142,122 @@ export function CreateTaskModal({ isOpen, onClose, onTaskCreated, initialAccount
             </div>
 
             <div className="space-y-1">
-              <label className="text-slate-300 font-medium">Assignee / Owner</label>
+              <label className="text-zinc-300 font-medium text-[11px]">Priority Level</label>
+              <select
+                name="priority"
+                value={formData.priority}
+                onChange={handleChange}
+                className="w-full bg-zinc-950/60 border border-zinc-700/60 rounded-lg px-3 py-2 text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500/50 text-xs font-mono"
+              >
+                <option value="1">P1 - Critical (Immediate / Escalation)</option>
+                <option value="2">P2 - High (Pre-Event Milestone)</option>
+                <option value="3">P3 - Standard (Operational Cadence)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Task Title */}
+          <div className="space-y-1">
+            <label className="text-zinc-300 font-medium text-[11px]">Task Deliverable Title *</label>
+            <input
+              type="text"
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
+              placeholder="e.g. Deliver written confirmation of training dates to Insp. Mbeki"
+              required
+              className="w-full bg-zinc-950/60 border border-zinc-700/60 rounded-lg px-3 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50 text-xs"
+            />
+          </div>
+
+          {/* Owner & Deadline Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-zinc-300 font-medium text-[11px]">Assigned Owner</label>
               <input
                 type="text"
                 name="owner"
                 value={formData.owner}
                 onChange={handleChange}
-                placeholder="e.g. Sam / Field Ops Lead"
-                className="w-full bg-slate-950 border border-slate-800 rounded-md px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 text-xs"
+                placeholder="e.g. Account Director, CS Lead"
+                className="w-full bg-zinc-950/60 border border-zinc-700/60 rounded-lg px-3 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50 text-xs"
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="space-y-1">
-              <label className="text-slate-300 font-medium">Priority Urgency</label>
-              <select
-                name="priority"
-                value={formData.priority}
-                onChange={handleChange}
-                className="w-full bg-slate-950 border border-slate-800 rounded-md px-2 py-2 text-white focus:outline-none focus:border-indigo-500 text-xs font-mono"
-              >
-                <option value="1">P1 - Critical / Urgent</option>
-                <option value="2">P2 - High Priority</option>
-                <option value="3">P3 - Medium</option>
-                <option value="4">P4 - Low / Backlog</option>
-              </select>
-            </div>
 
             <div className="space-y-1">
-              <label className="text-slate-300 font-medium">Action Category</label>
-              <select
-                name="action_type"
-                value={formData.action_type}
-                onChange={handleChange}
-                className="w-full bg-slate-950 border border-slate-800 rounded-md px-2 py-2 text-white focus:outline-none focus:border-indigo-500 text-xs"
-              >
-                <option value="escalation">Escalation & Risk</option>
-                <option value="meeting">Executive Meeting</option>
-                <option value="field_ops">Field Engineering</option>
-                <option value="contract">Commercial Renewal</option>
-                <option value="review">Audit & Review</option>
-                <option value="general">Operational</option>
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-slate-300 font-medium">Deadline</label>
+              <label className="text-zinc-300 font-medium text-[11px]">Deadline Date</label>
               <input
                 type="date"
                 name="deadline"
                 value={formData.deadline}
                 onChange={handleChange}
-                className="w-full bg-slate-950 border border-slate-800 rounded-md px-2 py-2 text-white focus:outline-none focus:border-indigo-500 text-xs"
+                className="w-full bg-zinc-950/60 border border-zinc-700/60 rounded-lg px-3 py-2 text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500/50 text-xs font-mono"
               />
             </div>
           </div>
 
+          {/* Reasoning / Strategic Context */}
           <div className="space-y-1">
-            <label className="text-slate-300 font-medium">Strategic Reasoning & Trigger</label>
+            <label className="text-zinc-300 font-medium text-[11px]">Strategic Reasoning (Deterministic Ranking Basis)</label>
             <textarea
               name="reasoning"
               rows="2"
               value={formData.reasoning}
               onChange={handleChange}
-              placeholder="Why this action is critical now (e.g. ticket FB-11206 unanswered, high-visibility event)..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-md px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 text-xs resize-none"
+              placeholder="Why this move takes priority over other deliverables..."
+              className="w-full bg-zinc-950/60 border border-zinc-700/60 rounded-lg px-3 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50 text-xs"
             />
           </div>
 
+          {/* Expected Outcome */}
           <div className="space-y-1">
-            <label className="text-slate-300 font-medium">Expected Outcome</label>
+            <label className="text-zinc-300 font-medium text-[11px]">Target Expected Outcome</label>
             <input
               type="text"
               name="expected_outcome"
               value={formData.expected_outcome}
               onChange={handleChange}
-              placeholder="e.g. Written confirmation provided, pilot schedule approved"
-              className="w-full bg-slate-950 border border-slate-800 rounded-md px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 text-xs"
+              placeholder="e.g. Customer confirms operational readiness before Dec 5 public event"
+              className="w-full bg-zinc-950/60 border border-zinc-700/60 rounded-lg px-3 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50 text-xs"
             />
           </div>
 
+          {/* Initial Task Notes */}
           <div className="space-y-1">
-            <label className="text-slate-300 font-medium">Initial Progress Note</label>
+            <label className="text-zinc-300 font-medium text-[11px]">Initial Progress Note</label>
             <textarea
               name="task_notes"
               rows="2"
               value={formData.task_notes}
               onChange={handleChange}
-              placeholder="Record initial status or immediate context..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-md px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 text-xs resize-none"
+              placeholder="Log any execution details, blockers, or reference ticket IDs..."
+              className="w-full bg-zinc-950/60 border border-zinc-700/60 rounded-lg px-3 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50 text-xs"
             />
           </div>
 
-          {/* Footer Actions */}
-          <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+          {/* Footer Submit */}
+          <div className="pt-4 border-t border-zinc-800/80 flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md font-medium transition"
+              className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs font-medium transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-medium rounded-md shadow-md transition flex items-center gap-2"
+              className="px-5 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 shadow-sm"
             >
               {loading ? (
-                <span>Creating Task...</span>
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Configuring Task...</span>
+                </>
               ) : (
                 <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Create Task</span>
+                  <CheckSquare className="w-3.5 h-3.5" />
+                  <span>Configure Task</span>
                 </>
               )}
             </button>
