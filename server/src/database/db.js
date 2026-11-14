@@ -37,16 +37,29 @@ export async function getClient() {
 }
 
 export async function initDb() {
-  console.log('[DB] Initializing database schema...');
-  const schemaPath = path.join(__dirname, 'schema.sql');
-  const schemaSql = fs.readFileSync(schemaPath, 'utf-8');
-
   try {
-    await pool.query(schemaSql);
-    console.log('[DB] Database schema initialized successfully.');
+    const tableCheck = await pool.query("SELECT 1 FROM information_schema.tables WHERE table_name = 'accounts'");
+    if (tableCheck.rows.length > 0) {
+      console.log('[DB] Database schema verified (accounts table exists).');
+      return;
+    }
   } catch (err) {
-    console.error('[DB] Failed to initialize schema:', err.message);
-    throw err;
+    console.warn('[DB] Pre-check query warning:', err.message);
+  }
+
+  console.log('[DB] Initializing database schema from schema.sql...');
+  const schemaPath = path.join(__dirname, 'schema.sql');
+  if (fs.existsSync(schemaPath)) {
+    try {
+      const schemaSql = fs.readFileSync(schemaPath, 'utf-8');
+      await pool.query(schemaSql);
+      console.log('[DB] Database schema initialized successfully.');
+    } catch (err) {
+      console.error('[DB] Failed to initialize schema:', err.message);
+      // Non-fatal if tables already partially exist
+    }
+  } else {
+    console.warn('[DB] schema.sql not found on filesystem, relying on existing database migrations.');
   }
 }
 
