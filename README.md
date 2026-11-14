@@ -44,7 +44,8 @@ The CRM never fabricates IDs, values, or contacts. Every number, stakeholder con
 
 ## Live Production Deployment
 
-- **Live Hosted Application**: [https://crm-flytbase.vercel.app](https://crm-flytbase.vercel.app)
+- **Custom Domain**: [https://www.kaaliya.in](https://www.kaaliya.in) (also accessible at [https://kaaliya.in](https://kaaliya.in))
+- **Vercel Mirror**: [https://crm-flytbase.vercel.app](https://crm-flytbase.vercel.app)
 - **Database**: Supabase PostgreSQL (Managed Cloud Database)
 - **Hosting / Edge**: Vercel Serverless Functions + Global Edge CDN
 - **Public GitHub Repository**: [https://github.com/2neuronbrain/CRM](https://github.com/2neuronbrain/CRM)
