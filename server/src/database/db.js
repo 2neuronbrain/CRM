@@ -7,11 +7,14 @@ import { config } from '../config/index.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const isLocal = config.databaseUrl.includes('localhost') || config.databaseUrl.includes('127.0.0.1');
+
 const pool = new pg.Pool({
   connectionString: config.databaseUrl,
-  max: 20,
+  ssl: isLocal ? false : { rejectUnauthorized: false },
+  max: process.env.VERCEL ? 5 : 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  connectionTimeoutMillis: 10000,
 });
 
 pool.on('error', (err) => {

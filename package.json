@@ -3,13 +3,26 @@
   "version": "1.0.0",
   "description": "Live, MCP-Connected Account Intelligence CRM",
   "private": true,
+  "type": "module",
+  "workspaces": [
+    "client",
+    "server"
+  ],
   "scripts": {
     "dev:server": "cd server && npm run dev",
     "dev:client": "cd client && npm run dev",
+    "build": "npm --prefix client run build",
     "build:client": "cd client && npm run build",
     "start": "cd server && npm start",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "pg": "^8.13.1",
+    "uuid": "^11.0.3"
   },
   "keywords": [
     "crm",
