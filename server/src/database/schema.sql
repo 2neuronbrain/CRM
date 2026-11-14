@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS accounts (
   id VARCHAR(255) PRIMARY KEY,
   external_id VARCHAR(255),
   name VARCHAR(255) NOT NULL,
+  industry VARCHAR(255) DEFAULT 'Enterprise',
   description TEXT,
   metadata JSONB DEFAULT '{}',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -83,8 +84,10 @@ CREATE TABLE IF NOT EXISTS actions (
   priority INTEGER DEFAULT 1,
   deadline VARCHAR(100),
   status VARCHAR(50) DEFAULT 'pending',
+  action_type VARCHAR(100) DEFAULT 'operational',
   reasoning TEXT,
   expected_outcome TEXT,
+  task_notes TEXT DEFAULT '',
   evidence_id VARCHAR(255) REFERENCES evidence(id) ON DELETE SET NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

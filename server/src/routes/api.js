@@ -11,6 +11,7 @@ import { analyzeRisks } from '../analysis/riskAnalysis.js';
 import { analyzeGaps } from '../analysis/gapAnalysis.js';
 import { analyzeSentiment } from '../analysis/sentimentAnalysis.js';
 import { getAccountSummary } from '../analysis/summaryAnalysis.js';
+import { getUnifiedTimeline } from '../analysis/interactionAnalysis.js';
 import sseManager from '../services/sse.js';
 
 const router = express.Router();
@@ -48,6 +49,82 @@ router.get('/accounts', async (req, res) => {
       accountsRes.rows.map(acc => getAccountSummary(acc.id))
     );
     res.json(summaries);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/accounts', async (req, res) => {
+  const { name, id: customId, industry, description, initialValue, currency = 'GBP', primaryContact } = req.body;
+  if (!name || name.trim() === '') {
+    return res.status(400).json({ error: 'Account name is required' });
+  }
+
+  const accountId = (customId && customId.trim()) 
+    ? customId.trim().toUpperCase() 
+    : name.trim().slice(0, 3).toUpperCase() + '-' + Math.floor(100 + Math.random() * 900);
+
+  try {
+    const existing = await db.query('SELECT id FROM accounts WHERE id = $1', [accountId]);
+    if (existing.rows.length > 0) {
+      return res.status(409).json({ error: `Account with ID '${accountId}' already exists.` });
+    }
+
+    const accRes = await db.query(
+      `INSERT INTO accounts (id, name, industry, description, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, NOW(), NOW())
+       RETURNING *`,
+      [accountId, name.trim(), industry || 'Enterprise Fleet', description || '']
+    );
+
+    const dealAmount = parseFloat(initialValue) || 0;
+    const dealId = `deal_${accountId.toLowerCase()}_initial`;
+    if (dealAmount > 0) {
+      await db.query(
+        `INSERT INTO deals (id, account_id, title, amount, currency, status, verified_amount, confidence, renewal_date, contract_terms)
+         VALUES ($1, $2, $3, $4, $5, 'active', $6, 'Unverified', NOW() + INTERVAL '1 year', 'Initial commercial contract proposal')
+         ON CONFLICT (id) DO NOTHING`,
+        [dealId, accountId, `${name} Commercial Contract`, dealAmount, currency, 0]
+      );
+    }
+
+    if (primaryContact && primaryContact.name && primaryContact.name.trim() !== '') {
+      const personId = `person_${uuidv4().slice(0, 8)}`;
+      await db.query(
+        `INSERT INTO people (id, account_id, name, title, role, stance, email, phone, is_key_sponsor)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [
+          personId,
+          accountId,
+          primaryContact.name.trim(),
+          primaryContact.role || 'Primary Stakeholder',
+          'Primary Contact',
+          primaryContact.stance || 'neutral',
+          primaryContact.email || '',
+          primaryContact.phone || '',
+          primaryContact.stance === 'champion'
+        ]
+      );
+
+      if (dealAmount > 0) {
+        await db.query(
+          `INSERT INTO deal_stakeholders (deal_id, person_id, role, influence)
+           VALUES ($1, $2, 'Primary Decision Maker', 'high')
+           ON CONFLICT DO NOTHING`,
+          [dealId, personId]
+        );
+      }
+    }
+
+    await db.query(
+      `INSERT INTO activities (id, account_id, type, title, description, timestamp)
+       VALUES ($1, $2, 'account_created', $3, $4, NOW())`,
+      [uuidv4(), accountId, `Account Onboarded: ${name.trim()}`, `Created new CRM account with initial tracking.`]
+    );
+
+    const summary = await getAccountSummary(accountId);
+    sseManager.broadcast('account_created', summary);
+    res.status(201).json(summary);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -144,22 +221,202 @@ router.get('/tasks', async (req, res) => {
   }
 });
 
+router.post('/tasks', async (req, res) => {
+  const {
+    title,
+    account_id,
+    deal_id,
+    owner = 'Unassigned',
+    priority = 2,
+    deadline,
+    action_type = 'general',
+    status = 'pending',
+    reasoning = '',
+    expected_outcome = '',
+    task_notes = '',
+    evidence_id = null
+  } = req.body;
+
+  if (!title || !title.trim() || !account_id) {
+    return res.status(400).json({ error: 'Title and Account ID are required' });
+  }
+
+  const taskId = `task_${uuidv4().slice(0, 8)}`;
+  try {
+    const insertRes = await db.query(
+      `INSERT INTO actions (
+        id, account_id, deal_id, title, owner, priority, deadline, action_type, status,
+        reasoning, expected_outcome, task_notes, evidence_id, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
+      RETURNING *`,
+      [
+        taskId,
+        account_id,
+        deal_id || null,
+        title.trim(),
+        owner,
+        parseInt(priority, 10) || 2,
+        deadline ? String(deadline) : null,
+        action_type,
+        status,
+        reasoning,
+        expected_outcome,
+        task_notes,
+        evidence_id
+      ]
+    );
+
+    const taskRow = insertRes.rows[0];
+
+    await db.query(
+      `INSERT INTO activities (id, account_id, type, title, description, timestamp)
+       VALUES ($1, $2, 'task_created', $3, $4, NOW())`,
+      [uuidv4(), account_id, `Task Created: ${title}`, `Assigned to: ${owner}, Priority: P${priority}`]
+    );
+
+    sseManager.broadcast('task_created', taskRow);
+    res.status(201).json(taskRow);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put('/tasks/:taskId', async (req, res) => {
+  const {
+    title,
+    owner,
+    priority,
+    deadline,
+    action_type,
+    status,
+    reasoning,
+    expected_outcome,
+    task_notes,
+    account_id,
+    deal_id,
+    evidence_id
+  } = req.body;
+
+  try {
+    const updateRes = await db.query(
+      `UPDATE actions
+       SET title = COALESCE($1, title),
+           owner = COALESCE($2, owner),
+           priority = COALESCE($3, priority),
+           deadline = COALESCE($4, deadline),
+           action_type = COALESCE($5, action_type),
+           status = COALESCE($6, status),
+           reasoning = COALESCE($7, reasoning),
+           expected_outcome = COALESCE($8, expected_outcome),
+           task_notes = COALESCE($9, task_notes),
+           account_id = COALESCE($10, account_id),
+           deal_id = COALESCE($11, deal_id),
+           evidence_id = COALESCE($12, evidence_id),
+           updated_at = NOW()
+       WHERE id = $13
+       RETURNING *`,
+      [
+        title || null,
+        owner || null,
+        priority !== undefined ? parseInt(priority, 10) : null,
+        deadline || null,
+        action_type || null,
+        status || null,
+        reasoning || null,
+        expected_outcome || null,
+        task_notes !== undefined ? task_notes : null,
+        account_id || null,
+        deal_id || null,
+        evidence_id || null,
+        req.params.taskId
+      ]
+    );
+
+    if (updateRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    const taskRow = updateRes.rows[0];
+    sseManager.broadcast('task_updated', taskRow);
+    res.json(taskRow);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.patch('/tasks/:taskId', async (req, res) => {
-  const { status } = req.body;
+  const { status, task_notes, priority, owner, deadline } = req.body;
   try {
     const updateRes = await db.query(
       `UPDATE actions 
        SET status = COALESCE($1, status),
+           task_notes = COALESCE($2, task_notes),
+           priority = COALESCE($3, priority),
+           owner = COALESCE($4, owner),
+           deadline = COALESCE($5, deadline),
            updated_at = NOW()
-       WHERE id = $2
+       WHERE id = $6
        RETURNING *`,
-      [status, req.params.taskId]
+      [
+        status || null,
+        task_notes !== undefined ? task_notes : null,
+        priority !== undefined ? parseInt(priority, 10) : null,
+        owner || null,
+        deadline || null,
+        req.params.taskId
+      ]
     );
     if (updateRes.rows.length === 0) {
       return res.status(404).json({ error: 'Task not found' });
     }
     sseManager.broadcast('task_updated', updateRes.rows[0]);
     res.json(updateRes.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/tasks/:taskId/notes', async (req, res) => {
+  const { note, author = 'Team' } = req.body;
+  if (!note || note.trim() === '') {
+    return res.status(400).json({ error: 'Note content is required' });
+  }
+
+  const timestampStr = new Date().toISOString().replace('T', ' ').slice(0, 16);
+  const noteEntry = `[${timestampStr} - ${author}]: ${note.trim()}`;
+
+  try {
+    const updateRes = await db.query(
+      `UPDATE actions
+       SET task_notes = CASE 
+             WHEN task_notes IS NULL OR task_notes = '' THEN $1
+             ELSE task_notes || E'\n' || $1
+           END,
+           updated_at = NOW()
+       WHERE id = $2
+       RETURNING *`,
+      [noteEntry, req.params.taskId]
+    );
+
+    if (updateRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    sseManager.broadcast('task_updated', updateRes.rows[0]);
+    res.json(updateRes.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.delete('/tasks/:taskId', async (req, res) => {
+  try {
+    const delRes = await db.query(`DELETE FROM actions WHERE id = $1 RETURNING *`, [req.params.taskId]);
+    if (delRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+    sseManager.broadcast('task_deleted', { id: req.params.taskId });
+    res.json({ message: 'Task deleted successfully', deletedTask: delRes.rows[0] });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -261,7 +518,8 @@ router.get('/evidence/:evidenceId', async (req, res) => {
        FROM evidence e 
        LEFT JOIN accounts a ON a.id = e.account_id 
        LEFT JOIN deals d ON d.id = e.deal_id 
-       WHERE e.id = $1`,
+       WHERE e.id = $1 OR e.source_id = $1 OR e.id = 'ev_' || $1 OR e.id = REPLACE($1, 'sig_', 'ev_sig_')
+       LIMIT 1`,
       [req.params.evidenceId]
     );
     if (evRes.rows.length === 0) {
@@ -273,7 +531,23 @@ router.get('/evidence/:evidenceId', async (req, res) => {
   }
 });
 
-// 6. Activity & Signals
+// 6. Customer & Account Interaction Timeline
+router.get('/timeline', async (req, res) => {
+  try {
+    const { accountId, channel, query: q, limit } = req.query;
+    const items = await getUnifiedTimeline({
+      accountId: accountId || null,
+      channel: channel || null,
+      query: q || null,
+      limit: limit ? parseInt(limit, 10) : 100
+    });
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 7. Activity & Signals
 router.get('/activity', async (req, res) => {
   try {
     const actRes = await db.query(

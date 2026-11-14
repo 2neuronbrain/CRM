@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useEvidence } from '../context/EvidenceContext';
 import ConfidenceBadge from '../components/ConfidenceBadge';
 import SeverityBadge from '../components/SeverityBadge';
+import AccountTimelineSection from '../components/AccountTimelineSection';
 import { 
   Building2, 
   DollarSign, 
@@ -125,6 +126,7 @@ export function AccountDetailPage() {
             { id: 'actions', label: '3. Next Actions', icon: Target },
             { id: 'risks', label: '4. Risk Radar', icon: AlertOctagon },
             { id: 'gaps', label: '5. Blind Spots', icon: EyeOff },
+            { id: 'timeline', label: '6. Interaction Timeline', icon: Clock },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -567,6 +569,11 @@ export function AccountDetailPage() {
             )}
           </div>
         </section>
+      )}
+
+      {/* QUESTION 6: Interaction Timeline */}
+      {(activeTab === 'all' || activeTab === 'timeline') && (
+        <AccountTimelineSection accountId={account.id} />
       )}
     </div>
   );

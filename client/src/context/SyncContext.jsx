@@ -12,8 +12,11 @@ export function SyncProvider({ children }) {
     lastError: null,
     counts: { pending: 0, processing: 0, completed: 0, failed: 0 },
     recentQueue: [],
-    isProcessing: false
+    isProcessing: false,
+    pendingQueueCount: 0
   });
+  const [secondsUntilAllowed, setSecondsUntilAllowed] = useState(0);
+  const [isTriggeringSync, setIsTriggeringSync] = useState(false);
   const [liveEvents, setLiveEvents] = useState([]);
 
   // Fetch status polling
@@ -22,7 +25,10 @@ export function SyncProvider({ children }) {
       const res = await fetch('/api/sync/status');
       if (res.ok) {
         const data = await res.json();
-        setSyncStatus(data);
+        const pendingQueueCount = data.pendingQueueCount !== undefined 
+          ? data.pendingQueueCount 
+          : (data.counts?.pending || 0);
+        setSyncStatus({ ...data, pendingQueueCount });
       }
     } catch (err) {
       console.warn('Failed to fetch sync status:', err.message);
@@ -31,37 +37,27 @@ export function SyncProvider({ children }) {
 
   useEffect(() => {
     fetchStatus();
-    const interval = setInterval(fetchStatus, 5000);
+    const interval = setInterval(fetchStatus, 4000);
 
     // Setup SSE
     let eventSource;
     try {
       eventSource = new EventSource('/api/events');
       
-      eventSource.addEventListener('operation_started', (e) => {
-        const data = JSON.parse(e.data);
-        fetchStatus();
-      });
-
-      eventSource.addEventListener('operation_completed', (e) => {
-        const data = JSON.parse(e.data);
-        fetchStatus();
-      });
-
-      eventSource.addEventListener('operation_failed', (e) => {
-        const data = JSON.parse(e.data);
-        fetchStatus();
-      });
-
+      eventSource.addEventListener('operation_started', () => fetchStatus());
+      eventSource.addEventListener('operation_completed', () => fetchStatus());
+      eventSource.addEventListener('operation_failed', () => fetchStatus());
       eventSource.addEventListener('signals_processed', (e) => {
-        const data = JSON.parse(e.data);
-        setLiveEvents((prev) => [...data.events, ...prev]);
+        try {
+          const data = JSON.parse(e.data);
+          if (data.events) setLiveEvents((prev) => [...data.events, ...prev]);
+        } catch (_) {}
         fetchStatus();
       });
-
-      eventSource.addEventListener('accounts_updated', () => fetchStatus());
-      eventSource.addEventListener('paperwork_updated', () => fetchStatus());
-      eventSource.addEventListener('queue_updated', () => fetchStatus());
+      eventSource.addEventListener('task_created', () => fetchStatus());
+      eventSource.addEventListener('task_updated', () => fetchStatus());
+      eventSource.addEventListener('task_deleted', () => fetchStatus());
+      eventSource.addEventListener('account_created', () => fetchStatus());
       eventSource.addEventListener('note_created', () => fetchStatus());
     } catch (err) {
       console.warn('SSE connection failed:', err);
@@ -73,12 +69,33 @@ export function SyncProvider({ children }) {
     };
   }, []);
 
+  // Live countdown timer
+  useEffect(() => {
+    if (!syncStatus.nextAllowedRequestAt) {
+      setSecondsUntilAllowed(0);
+      return;
+    }
+
+    const target = new Date(syncStatus.nextAllowedRequestAt).getTime();
+    const updateCountdown = () => {
+      const remaining = Math.max(0, Math.ceil((target - Date.now()) / 1000));
+      setSecondsUntilAllowed(remaining);
+    };
+
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 1000);
+    return () => clearInterval(timer);
+  }, [syncStatus.nextAllowedRequestAt]);
+
   const triggerCheck = async () => {
+    setIsTriggeringSync(true);
     try {
       await fetch('/api/sync/check', { method: 'POST' });
-      fetchStatus();
+      await fetchStatus();
     } catch (err) {
       console.error('Trigger sync error:', err);
+    } finally {
+      setTimeout(() => setIsTriggeringSync(false), 800);
     }
   };
 
@@ -92,7 +109,16 @@ export function SyncProvider({ children }) {
   };
 
   return (
-    <SyncContext.Provider value={{ syncStatus, liveEvents, triggerCheck, triggerInitialSync, refreshStatus: fetchStatus }}>
+    <SyncContext.Provider value={{
+      syncStatus,
+      liveEvents,
+      secondsUntilAllowed,
+      isTriggeringSync,
+      triggerCheck,
+      triggerManualSync: triggerCheck,
+      triggerInitialSync,
+      refreshStatus: fetchStatus
+    }}>
       {children}
     </SyncContext.Provider>
   );
@@ -105,3 +131,5 @@ export function useSync() {
   }
   return context;
 }
+
+export default SyncContext;

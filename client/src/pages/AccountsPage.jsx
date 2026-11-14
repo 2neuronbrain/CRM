@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import SentimentBadge from '../components/SentimentBadge';
-import SeverityBadge from '../components/SeverityBadge';
+import AddAccountModal from '../components/AddAccountModal';
 import { 
   Building2, 
   ShieldCheck, 
@@ -12,166 +12,198 @@ import {
   Target, 
   Radio, 
   HeartHandshake,
-  CheckCircle2
+  CheckCircle2,
+  Plus,
+  RefreshCw,
+  ExternalLink
 } from 'lucide-react';
 
 export function AccountsPage() {
   const [summaries, setSummaries] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isAddAccountOpen, setIsAddAccountOpen] = useState(false);
 
-  useEffect(() => {
+  const fetchAccounts = () => {
+    setLoading(true);
     fetch('/api/accounts')
       .then(res => res.json())
       .then(data => setSummaries(Array.isArray(data) ? data : []))
       .catch(console.error)
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchAccounts();
   }, []);
+
+  const handleAccountCreated = (newAcc) => {
+    fetchAccounts();
+  };
 
   if (loading) {
     return (
-      <div className="py-24 text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900 mx-auto mb-3"></div>
-        <p className="text-xs text-slate-500 font-medium">Compiling account portfolio summaries...</p>
+      <div className="py-24 text-center space-y-3">
+        <RefreshCw className="w-7 h-7 animate-spin text-emerald-400 mx-auto" />
+        <p className="text-xs text-slate-400 font-medium">Compiling account portfolio summaries...</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Page Title & Insightful Overview */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Page Title & Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Accounts Overview & Portfolio Status</h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Operational and commercial reality of assigned customer accounts for Monday review.
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">
+              Portfolio Overview
+            </span>
+            <span className="text-xs text-slate-600">•</span>
+            <span className="text-xs font-mono text-slate-400">{summaries.length} Accounts Monitored</span>
+          </div>
+          <h1 className="text-xl font-bold text-white tracking-tight">
+            Customer Accounts & Portfolio Reality
+          </h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Operational and commercial reality of assigned customer accounts for executive review.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-mono bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200 font-semibold">
-            2 Active Enterprise Accounts
-          </span>
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={fetchAccounts}
+            className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            title="Refresh Portfolio"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => setIsAddAccountOpen(true)}
+            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium shadow-sm transition flex items-center gap-1.5 active:scale-95"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Account</span>
+          </button>
         </div>
       </div>
 
-      {/* Structured Account Briefing Cards */}
+      {/* Account Cards Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {summaries.map((acc) => {
           const isAtRisk = acc.healthBadgeColor === 'red';
+          const isWarning = acc.healthBadgeColor === 'amber';
+
           return (
             <div
               key={acc.accountId}
-              className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between space-y-5 hover:border-slate-300 transition"
+              className="bg-slate-900/95 rounded-2xl border border-slate-800 p-6 shadow-sm flex flex-col justify-between space-y-5 hover:border-slate-700 transition"
             >
               <div className="space-y-4">
                 {/* Header Row */}
-                <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
+                <div className="flex items-start justify-between gap-3 border-b border-slate-800/80 pb-4">
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-900 text-white">
-                        Account {acc.accountId}
+                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                      <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        Acc {acc.accountId}
                       </span>
-                      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                        {acc.statusCategory}
+                      <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider font-mono">
+                        {acc.statusCategory || acc.industry}
                       </span>
                     </div>
-                    <h2 className="text-lg font-bold text-slate-900 leading-tight">
+                    <h2 className="text-lg font-bold text-white leading-tight">
                       {acc.name}
                     </h2>
                   </div>
 
-                  <SentimentBadge 
-                    status={acc.metrics?.sentimentStatus} 
-                    score={acc.metrics?.sentimentScore} 
-                    size="xs" 
-                  />
+                  <span
+                    className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full border ${
+                      isAtRisk
+                        ? 'bg-rose-500/10 text-rose-300 border-rose-500/30'
+                        : isWarning
+                        ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                        : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                    }`}
+                  >
+                    {acc.healthBadge}
+                  </span>
                 </div>
 
                 {/* One-Line Verdict */}
-                <p className="text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-100 leading-relaxed font-medium">
-                  {acc.oneLineVerdict}
-                </p>
-
-                {/* 4 Core Metrics Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 bg-slate-50/70 rounded-xl border border-slate-100 text-xs">
-                  <div>
-                    <span className="text-[10px] uppercase font-semibold text-slate-400 block">Verified Book</span>
-                    <strong className="text-emerald-700 font-bold text-sm block mt-0.5">
-                      {acc.metrics?.verifiedRevenue}
-                    </strong>
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-semibold text-slate-400 block">Pipeline</span>
-                    <strong className="text-slate-800 font-bold text-sm block mt-0.5">
-                      {acc.metrics?.pipelineValue}
-                    </strong>
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-semibold text-slate-400 block">Active Fleet</span>
-                    <span className="text-slate-800 font-medium text-[11px] block mt-0.5 truncate">
-                      {acc.metrics?.activeFleet?.split(' ')[0]} Docks
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-semibold text-slate-400 block">Renewal</span>
-                    <span className="text-rose-700 font-mono text-[11px] block mt-0.5 font-semibold">
-                      {acc.metrics?.renewalDate?.split(' ')[0]} {acc.metrics?.renewalDate?.split(' ')[1]}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Critical Decision Required */}
-                <div className="space-y-1 text-xs">
-                  <strong className="block text-[11px] uppercase font-bold text-slate-900 tracking-wider">
-                    Required Monday Decision:
-                  </strong>
-                  <p className="text-slate-700 text-xs leading-relaxed">
-                    {acc.criticalDecision}
+                <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold block mb-1">
+                    Bottom-Line Reality
+                  </span>
+                  <p className="text-xs text-slate-200 leading-relaxed font-medium">
+                    {acc.oneLineVerdict}
                   </p>
                 </div>
 
-                {/* Priority Action & Top Risk Quick Highlights */}
-                <div className="space-y-2 pt-2 border-t border-slate-100 text-xs">
-                  {acc.priorityAction && (
-                    <div className="flex items-start gap-2 bg-emerald-50/50 p-2.5 rounded-lg border border-emerald-100">
-                      <Target className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                      <div className="min-w-0 flex-1">
-                        <span className="font-semibold text-emerald-950 block truncate">
-                          Next Move: {acc.priorityAction.title}
-                        </span>
-                        <span className="text-[11px] text-emerald-800">
-                          Owner: {acc.priorityAction.owner} • Due: {acc.priorityAction.deadline}
-                        </span>
-                      </div>
+                {/* Metrics Matrix */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 font-mono text-center">
+                  <div className="p-2.5 rounded-lg bg-slate-950/50 border border-slate-800/80">
+                    <span className="text-[10px] uppercase text-slate-400 block">Verified Book</span>
+                    <span className="text-xs font-bold text-emerald-400">{acc.metrics.verifiedRevenue}</span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-slate-950/50 border border-slate-800/80">
+                    <span className="text-[10px] uppercase text-slate-400 block">Pipeline Value</span>
+                    <span className="text-xs font-bold text-slate-200">{acc.metrics.pipelineValue}</span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-slate-950/50 border border-slate-800/80">
+                    <span className="text-[10px] uppercase text-slate-400 block">Sentiment</span>
+                    <div className="flex items-center justify-center gap-1 mt-0.5">
+                      <span className="text-xs font-bold text-white">{acc.metrics.sentimentScore}/100</span>
                     </div>
-                  )}
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-slate-950/50 border border-slate-800/80">
+                    <span className="text-[10px] uppercase text-slate-400 block">Active Risks</span>
+                    <span className={`text-xs font-bold ${acc.metrics.riskCount > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                      {acc.metrics.riskCount} Open
+                    </span>
+                  </div>
+                </div>
 
-                  {acc.topRisk && (
-                    <div className="flex items-start gap-2 bg-rose-50/50 p-2.5 rounded-lg border border-rose-100">
-                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                      <div className="min-w-0 flex-1">
-                        <span className="font-semibold text-rose-950 block truncate">
-                          Immediate Risk: {acc.topRisk.title}
-                        </span>
-                        <span className="text-[11px] text-rose-800 truncate block">
-                          {acc.topRisk.consequence}
-                        </span>
-                      </div>
-                    </div>
-                  )}
+                {/* Operational & Commercial Synthesis */}
+                <div className="space-y-2 text-xs pt-1">
+                  <div>
+                    <strong className="text-slate-300 font-semibold block mb-0.5">Commercial Status:</strong>
+                    <p className="text-slate-400 leading-relaxed">{acc.commercialSummary}</p>
+                  </div>
+                  <div>
+                    <strong className="text-slate-300 font-semibold block mb-0.5">Operational Context:</strong>
+                    <p className="text-slate-400 leading-relaxed">{acc.operationalSummary}</p>
+                  </div>
+                </div>
+
+                {/* Critical Monday Decision */}
+                <div className="p-3 bg-indigo-950/20 border border-indigo-800/40 rounded-xl space-y-1">
+                  <div className="flex items-center gap-1.5 text-indigo-400">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-mono uppercase tracking-wider font-bold">
+                      Required Monday Leadership Move
+                    </span>
+                  </div>
+                  <p className="text-xs text-indigo-200 leading-relaxed font-medium">
+                    {acc.criticalDecision}
+                  </p>
                 </div>
               </div>
 
-              {/* Card Footer Button */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-[11px] text-slate-400">
-                  Full 5-Question Intelligence Profile
-                </span>
+              {/* Bottom Action Footer */}
+              <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-3">
+                <Link
+                  to={`/timeline?accountId=${acc.accountId}`}
+                  className="text-xs font-medium text-slate-400 hover:text-white flex items-center gap-1.5 transition"
+                >
+                  <Clock className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Interaction Timeline</span>
+                </Link>
+
                 <Link
                   to={`/accounts/${acc.accountId}`}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition"
+                  className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-medium rounded-lg border border-slate-700 transition flex items-center gap-1.5"
                 >
-                  Inspect Account <ArrowRight className="w-3.5 h-3.5" />
+                  <span>Open Account Intelligence</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-emerald-400" />
                 </Link>
               </div>
             </div>
@@ -179,64 +211,12 @@ export function AccountsPage() {
         })}
       </div>
 
-      {/* Comparative Portfolio Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="font-bold text-slate-900 text-sm">Portfolio Comparison Matrix</h3>
-          <span className="text-xs text-slate-400 font-mono">2 Accounts • Live MCP Synchronized</span>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] font-semibold border-b border-slate-200">
-              <tr>
-                <th className="py-2.5 px-4">Account</th>
-                <th className="py-2.5 px-4">Current Status Category</th>
-                <th className="py-2.5 px-4">Verified Revenue</th>
-                <th className="py-2.5 px-4">Customer Sentiment</th>
-                <th className="py-2.5 px-4">Fleet & Renewal</th>
-                <th className="py-2.5 px-4">Primary Immediate Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {summaries.map((acc) => (
-                <tr key={acc.accountId} className="hover:bg-slate-50/60 transition">
-                  <td className="py-3.5 px-4">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-900 text-white">
-                        {acc.accountId}
-                      </span>
-                      <strong className="text-slate-900 font-semibold">{acc.name}</strong>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className="font-medium text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[11px]">
-                      {acc.statusCategory}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className="font-mono font-bold text-emerald-700">
-                      {acc.metrics?.verifiedRevenue}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <SentimentBadge status={acc.metrics?.sentimentStatus} size="xs" />
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className="block text-slate-800 font-medium">{acc.metrics?.activeFleet?.split(' ')[0]} Docks</span>
-                    <span className="text-[10px] text-rose-600 block">{acc.metrics?.renewalDate?.split(' ')[0]} {acc.metrics?.renewalDate?.split(' ')[1]}</span>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className="text-slate-700 line-clamp-1 max-w-xs font-medium">
-                      {acc.priorityAction?.title || 'Review account'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Add Account Modal */}
+      <AddAccountModal
+        isOpen={isAddAccountOpen}
+        onClose={() => setIsAddAccountOpen(false)}
+        onAccountCreated={handleAccountCreated}
+      />
     </div>
   );
 }
